@@ -232,8 +232,6 @@ https://openai.com/enterprise-privacy
 
 ## Links
 
-[![Join our Discord community](https://raw.githubusercontent.com/KhulnaSoft/khulnasoft-vscode-release/main/media/docs/Joincommunity.png)](https://discord.gg/kG35uSHDBc)
-
 - Discord community: https://discord.gg/jaCmKVmf
 - KhulnaSoft site: https://khulnasoft.com
 - Blog: https://www.khulnasoft.com/blog/
