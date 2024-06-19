@@ -213,7 +213,7 @@ class BitbucketProvider(GitProvider):
         except Exception as e:
             get_logger().exception(f"Failed to remove comment, error: {e}")
 
-    # funtion to create_inline_comment
+    # function to create_inline_comment
     def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str, absolute_position: int = None):
         position, absolute_position = find_line_number_of_relevant_line_in_file(self.get_diff_files(),
                                                                             relevant_file.strip('`'),
@@ -382,7 +382,7 @@ class BitbucketProvider(GitProvider):
 
     def get_commit_messages(self):
         return ""  # not implemented yet
-    
+        
     # bitbucket does not support labels
     def publish_description(self, pr_title: str, description: str):
         payload = json.dumps({
