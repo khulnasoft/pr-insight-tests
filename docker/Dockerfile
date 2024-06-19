@@ -8,7 +8,7 @@ ENV PYTHONPATH=/app
 
 FROM base as github_app
 ADD pr_assistant pr_assistant
-CMD ["python", "-m", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-c", "pr_agent/servers/gunicorn_config.py", "--forwarded-allow-ips", "*", "pr_agent.servers.github_app:app"]
+CMD ["python", "-m", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-c", "pr_assistant/servers/gunicorn_config.py", "--forwarded-allow-ips", "*", "pr_assistant.servers.github_app:app"]
 
 FROM base as bitbucket_app
 ADD pr_assistant pr_assistant
