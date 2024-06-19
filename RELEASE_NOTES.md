@@ -91,8 +91,8 @@ Significant documentation updates (see [Installation Guide](https://github.com/k
  
 ### Added::Algo
 - New tool /similar_issue - Currently on GitHub app and CLI: indexes the issues in the repo, find the most similar issues to the target issue.
-- Describe markers: Empower the /describe tool with a templating capability (see more details in https://github.com/khulnasoft/pr-assistant/pull/273).
-- New feature in the /review tool - added an estimated effort estimation to the review (https://github.com/khulnasoft/pr-assistant/pull/306).
+- Describe markers: Empower the /describe tool with a templating capability (see more details in https://github.com/khulnasoft/pr-assistant/pull).
+- New feature in the /review tool - added an estimated effort estimation to the review (https://github.com/khulnasoft/pr-assistant/pull).
 
 ### Added::Infrastructure
 - Implementation of a GitLab webhook.
