@@ -106,7 +106,7 @@ class GithubProvider(GitProvider):
             git_files = context.get("git_files", None)
             if git_files:
                 return git_files
-            self.git_files = self.pr.get_files()
+            self.git_files = list(self.pr.get_files()) # 'list' to handle pagination
             context["git_files"] = self.git_files
             return self.git_files
         except Exception:
