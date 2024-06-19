@@ -108,7 +108,7 @@ If you prefer to have the file summaries appear in the "Files changed" tab on ev
 
 ![Diffview table](https://khulnasoft.com/images/pr_assistant/diffview-table.png){width=512}
 
-- `true`: A collapsable file comment with changes title and a changes summary for each file in the PR.
+- `true`: A collapsible file comment with changes title and a changes summary for each file in the PR.
 
 ![Diffview changes](https://khulnasoft.com/images/pr_assistant/diffview_changes.png){width=512}
 
