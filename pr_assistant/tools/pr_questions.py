@@ -61,12 +61,12 @@ class PRQuestions:
         # identify image
         img_path = self.idenfity_image_in_comment()
         if img_path:
-            get_logger().debug(f"Image path identified", artifact=img_path)
+            get_logger().debug("Image path identified", artifact=img_path)
 
         await retry_with_fallback_models(self._prepare_prediction, model_type=ModelType.TURBO)
 
         pr_comment = self._prepare_pr_answer()
-        get_logger().debug(f"PR output", artifact=pr_comment)
+        get_logger().debug("PR output", artifact=pr_comment)
 
         if self.git_provider.is_supported("gfm_markdown") and get_settings().pr_questions.enable_help_text:
             pr_comment += "<hr>\n\n<details> <summary><strong>💡 Tool usage guide:</strong></summary><hr> \n\n"
@@ -94,10 +94,10 @@ class PRQuestions:
     async def _prepare_prediction(self, model: str):
         self.patches_diff = get_pr_diff(self.git_provider, self.token_handler, model)
         if self.patches_diff:
-            get_logger().debug(f"PR diff", artifact=self.patches_diff)
+            get_logger().debug("PR diff", artifact=self.patches_diff)
             self.prediction = await self._get_prediction(model)
         else:
-            get_logger().error(f"Error getting PR diff")
+            get_logger().error("Error getting PR diff")
             self.prediction = ""
 
     async def _get_prediction(self, model: str):

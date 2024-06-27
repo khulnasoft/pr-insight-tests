@@ -37,7 +37,7 @@ some_config2=...
 ```
     """
 
-        output += f"\n\nSee the review [usage page](https://pr-assistant-docs.khulnasoft.com/tools/review/) for a comprehensive guide on using this tool.\n\n"
+        output += "\n\nSee the review [usage page](https://pr-assistant-docs.khulnasoft.com/tools/review/) for a comprehensive guide on using this tool.\n\n"
 
         return output
 
@@ -145,7 +145,7 @@ Use triple quotes to write multi-line instructions. Use bullet points to make th
 
         output += "</table>"
 
-        output += f"\n\nSee the [describe usage](https://pr-assistant-docs.khulnasoft.com/tools/describe/) page for a comprehensive guide on using this tool.\n\n"
+        output += "\n\nSee the [describe usage](https://pr-assistant-docs.khulnasoft.com/tools/describe/) page for a comprehensive guide on using this tool.\n\n"
 
         return output
 
@@ -171,7 +171,7 @@ You can ask questions about the entire PR, about specific code lines, or about a
         #
         # output += "</table>"
 
-        output += f"\n\nSee the [ask usage](https://pr-assistant-docs.khulnasoft.com/tools/ask/) page for a comprehensive guide on using this tool.\n\n"
+        output += "\n\nSee the [ask usage](https://pr-assistant-docs.khulnasoft.com/tools/ask/) page for a comprehensive guide on using this tool.\n\n"
 
         return output
 
@@ -198,6 +198,6 @@ some_config2=...
     
 """
 
-        output += f"\n\nSee the improve [usage page](https://pr-assistant-docs.khulnasoft.com/tools/improve/) for a comprehensive guide on using this tool.\n\n"
+        output += "\n\nSee the improve [usage page](https://pr-assistant-docs.khulnasoft.com/tools/improve/) for a comprehensive guide on using this tool.\n\n"
 
         return output

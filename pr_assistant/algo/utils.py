@@ -86,9 +86,9 @@ def convert_to_markdown(output_data: dict, gfm_supported: bool = True, increment
     }
     markdown_text = ""
     if not incremental_review:
-        markdown_text += f"## PR Reviewer Guide 🔍\n\n"
+        markdown_text += "## PR Reviewer Guide 🔍\n\n"
     else:
-        markdown_text += f"## Incremental PR Reviewer Guide 🔍\n\n"
+        markdown_text += "## Incremental PR Reviewer Guide 🔍\n\n"
         markdown_text += f"⏮️ Review for commits since previous PR-Assistant review {incremental_review}.\n\n"
     if gfm_supported:
         markdown_text += "<table>\n<tr>\n"
@@ -143,11 +143,11 @@ def convert_to_markdown(output_data: dict, gfm_supported: bool = True, increment
 
     if 'code_feedback' in output_data:
         if gfm_supported:
-            markdown_text += f"\n\n"
-            markdown_text += f"<details><summary> <strong>Code feedback:</strong></summary>\n\n"
+            markdown_text += "\n\n"
+            markdown_text += "<details><summary> <strong>Code feedback:</strong></summary>\n\n"
             markdown_text += "<hr>"
         else:
-            markdown_text += f"\n\n** Code feedback:**\n\n"
+            markdown_text += "\n\n** Code feedback:**\n\n"
         for i, value in enumerate(output_data['code_feedback']):
             if value is None or value == '' or value == {} or value == []:
                 continue
@@ -155,7 +155,7 @@ def convert_to_markdown(output_data: dict, gfm_supported: bool = True, increment
         if markdown_text.endswith('<hr>'):
             markdown_text = markdown_text[:-4]
         if gfm_supported:
-            markdown_text += f"</details>"
+            markdown_text += "</details>"
     #print(markdown_text)
 
 
@@ -177,20 +177,20 @@ def process_can_be_split(emoji, value):
             relevant_files = split.get('relevant_files', [])
             if i == 0:
                 markdown_text += f"<td><details><summary>\nSub-PR theme: <strong>{title}</strong></summary>\n\n"
-                markdown_text += f"<hr>\n"
-                markdown_text += f"Relevant files:\n"
-                markdown_text += f"<ul>\n"
+                markdown_text += "<hr>\n"
+                markdown_text += "Relevant files:\n"
+                markdown_text += "<ul>\n"
                 for file in relevant_files:
                     markdown_text += f"<li>{file}</li>\n"
-                markdown_text += f"</ul>\n\n</details></td></tr>\n"
+                markdown_text += "</ul>\n\n</details></td></tr>\n"
             else:
                 markdown_text += f"<tr>\n<td><details><summary>\nSub-PR theme: <strong>{title}</strong></summary>\n\n"
-                markdown_text += f"<hr>\n"
-                markdown_text += f"Relevant files:\n"
-                markdown_text += f"<ul>\n"
+                markdown_text += "<hr>\n"
+                markdown_text += "Relevant files:\n"
+                markdown_text += "<ul>\n"
                 for file in relevant_files:
                     markdown_text += f"<li>{file}</li>\n"
-                markdown_text += f"</ul>\n\n</details></td></tr>\n"
+                markdown_text += "</ul>\n\n</details></td></tr>\n"
     return markdown_text
 
 
@@ -217,7 +217,7 @@ def parse_code_suggestion(code_suggestion: dict, i: int = 0, gfm_supported: bool
                     markdown_text += (f"<tr><td>{sub_key} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
                                       f"<td>\n\n<strong>\n\n{sub_value.strip()}\n\n</strong>\n</td></tr>")
                 elif sub_key.lower() == 'relevant_line':
-                    markdown_text += f"<tr><td>relevant line</td>"
+                    markdown_text += "<tr><td>relevant line</td>"
                     sub_value_list = sub_value.split('](')
                     relevant_line = sub_value_list[0].lstrip('`').lstrip('[')
                     if len(sub_value_list) > 1:
@@ -456,10 +456,10 @@ def try_fix_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
                                                                                   f'{key} |-\n        ')
     try:
         data = yaml.safe_load('\n'.join(response_text_lines_copy))
-        get_logger().info(f"Successfully parsed AI prediction after adding |-\n")
+        get_logger().info("Successfully parsed AI prediction after adding |-\n")
         return data
     except:
-        get_logger().info(f"Failed to parse AI prediction after adding |-\n")
+        get_logger().info("Failed to parse AI prediction after adding |-\n")
 
     # second fallback - try to extract only range from first ```yaml to ````
     snippet_pattern = r'```(yaml)?[\s\S]*?```'
@@ -468,7 +468,7 @@ def try_fix_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
         snippet_text = snippet.group()
         try:
             data = yaml.safe_load(snippet_text.removeprefix('```yaml').rstrip('`'))
-            get_logger().info(f"Successfully parsed AI prediction after extracting yaml snippet")
+            get_logger().info("Successfully parsed AI prediction after extracting yaml snippet")
             return data
         except:
             pass
@@ -478,7 +478,7 @@ def try_fix_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
     response_text_copy = response_text.strip().rstrip().removeprefix('{').removesuffix('}').rstrip(':\n')
     try:
         data = yaml.safe_load(response_text_copy)
-        get_logger().info(f"Successfully parsed AI prediction after removing curly brackets")
+        get_logger().info("Successfully parsed AI prediction after removing curly brackets")
         return data
     except:
         pass
@@ -752,7 +752,7 @@ def show_relevant_configurations(relevant_section: str) -> str:
     markdown_text = ""
     markdown_text += "\n<hr>\n<details> <summary><strong>🛠️ Relevant configurations:</strong></summary> \n\n"
     markdown_text +="<br>These are the relevant [configurations](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) for this tool:\n\n"
-    markdown_text += f"**[config**]\n```yaml\n\n"
+    markdown_text += "**[config**]\n```yaml\n\n"
     for key, value in get_settings().config.items():
         if key in forbidden_keys:
             continue

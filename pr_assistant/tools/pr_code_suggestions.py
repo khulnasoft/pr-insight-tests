@@ -65,8 +65,8 @@ class PRCodeSuggestions:
                                           get_settings().pr_code_suggestions_prompt.system,
                                           get_settings().pr_code_suggestions_prompt.user)
 
-        self.progress = f"## Generating PR code suggestions\n\n"
-        self.progress += f"""\nWork in progress ...<br>\n<img src="https://khulnasoft.com/images/pr_assistant/dual_ball_loading-crop.gif" width=48>"""
+        self.progress = "## Generating PR code suggestions\n\n"
+        self.progress += """\nWork in progress ...<br>\n<img src="https://khulnasoft.com/images/pr_assistant/dual_ball_loading-crop.gif" width=48>"""
         self.progress_response = None
 
     async def run(self):
@@ -91,7 +91,7 @@ class PRCodeSuggestions:
             if data is None or 'code_suggestions' not in data or not data['code_suggestions']:
                 get_logger().error('No code suggestions found for PR.')
                 pr_body = "## PR Code Suggestions ✨\n\nNo code suggestions found for PR."
-                get_logger().debug(f"PR output", artifact=pr_body)
+                get_logger().debug("PR output", artifact=pr_body)
                 if self.progress_response:
                     self.git_provider.edit_comment(self.progress_response, body=pr_body)
                 else:
@@ -110,7 +110,7 @@ class PRCodeSuggestions:
 
                     # generate summarized suggestions
                     pr_body = self.generate_summarized_suggestions(data)
-                    get_logger().debug(f"PR output", artifact=pr_body)
+                    get_logger().debug("PR output", artifact=pr_body)
 
                     # add usage guide
                     if get_settings().pr_code_suggestions.enable_help_text:
@@ -149,7 +149,7 @@ class PRCodeSuggestions:
             else:
                 try:
                     self.git_provider.remove_initial_comment()
-                    self.git_provider.publish_comment(f"Failed to generate code suggestions for PR")
+                    self.git_provider.publish_comment("Failed to generate code suggestions for PR")
                 except Exception as e:
                     pass
 
@@ -161,10 +161,10 @@ class PRCodeSuggestions:
                                         disable_extra_lines=True)
 
         if self.patches_diff:
-            get_logger().debug(f"PR diff", artifact=self.patches_diff)
+            get_logger().debug("PR diff", artifact=self.patches_diff)
             self.prediction = await self._get_prediction(model, self.patches_diff)
         else:
-            get_logger().error(f"Error getting PR diff")
+            get_logger().error("Error getting PR diff")
             self.prediction = None
 
         data = self.prediction
@@ -339,7 +339,7 @@ class PRCodeSuggestions:
                                                     max_calls=get_settings().pr_code_suggestions.max_number_of_calls)
         if self.patches_diff_list:
             get_logger().info(f"Number of PR chunk calls: {len(self.patches_diff_list)}")
-            get_logger().debug(f"PR diff:", artifact=self.patches_diff_list)
+            get_logger().debug("PR diff:", artifact=self.patches_diff_list)
 
             # parallelize calls to AI:
             if get_settings().pr_code_suggestions.parallel_calls:
@@ -372,7 +372,7 @@ class PRCodeSuggestions:
                             get_logger().error(f"Error getting PR diff for suggestion {i} in call {j}, error: {e}")
             self.data = data
         else:
-            get_logger().error(f"Error getting PR diff")
+            get_logger().error("Error getting PR diff")
             self.data = data = None
         return data
 
@@ -450,7 +450,7 @@ class PRCodeSuggestions:
             pr_body = "## PR Code Suggestions ✨\n\n"
 
             pr_body += "<table>"
-            header = f"Suggestion"
+            header = "Suggestion"
             delta = 66
             header += "&nbsp; " * delta
             if get_settings().pr_code_suggestions.self_reflect_on_suggestions:
@@ -510,9 +510,9 @@ class PRCodeSuggestions:
                     example_code = ""
                     example_code += f"```diff\n{patch}\n```\n"
                     if i==0:
-                        pr_body += f"""<td>\n\n"""
+                        pr_body += """<td>\n\n"""
                     else:
-                        pr_body += f"""<tr><td>\n\n"""
+                        pr_body += """<tr><td>\n\n"""
                     suggestion_summary = suggestion['one_sentence_summary'].strip().rstrip('.')
                     if '`' in suggestion_summary:
                         suggestion_summary = replace_code_tags(suggestion_summary)
@@ -528,15 +528,15 @@ class PRCodeSuggestions:
                     if get_settings().pr_code_suggestions.self_reflect_on_suggestions:
                         pr_body +=f"\n\n<details><summary><b>Suggestion importance[1-10]: {suggestion['score']}</b></summary>\n\n"
                         pr_body += f"Why: {suggestion['score_why']}\n\n"
-                        pr_body += f"</details>"
+                        pr_body += "</details>"
 
-                    pr_body += f"</details>"
+                    pr_body += "</details>"
 
                     # # add another column for 'score'
                     if get_settings().pr_code_suggestions.self_reflect_on_suggestions:
                         pr_body += f"</td><td align=center>{suggestion['score']}\n\n"
 
-                    pr_body += f"</td></tr>"
+                    pr_body += "</td></tr>"
 
 
                 # pr_body += "</details>"

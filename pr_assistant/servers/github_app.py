@@ -270,15 +270,15 @@ async def handle_request(body: Dict[str, Any], event: str):
 
     # handle comments on PRs
     if action == 'created':
-        get_logger().debug(f'Request body', artifact=body, event=event)
+        get_logger().debug('Request body', artifact=body, event=event)
         await handle_comments_on_pr(body, event, sender, sender_id, action, log_context, agent)
     # handle new PRs
     elif event == 'pull_request' and action != 'synchronize' and action != 'closed':
-        get_logger().debug(f'Request body', artifact=body, event=event)
+        get_logger().debug('Request body', artifact=body, event=event)
         await handle_new_pr_opened(body, event, sender, sender_id, action, log_context, agent)
     # handle pull_request event with synchronize action - "push trigger" for new commits
     elif event == 'pull_request' and action == 'synchronize':
-        get_logger().debug(f'Request body', artifact=body, event=event)
+        get_logger().debug('Request body', artifact=body, event=event)
         await handle_push_trigger_for_new_commits(body, event, sender, sender_id, action, log_context, agent)
     elif event == 'pull_request' and action == 'closed':
         if get_settings().get("CONFIG.ANALYTICS_FOLDER", ""):
@@ -327,7 +327,7 @@ async def _perform_auto_commands_github(commands_conf: str, agent: PRAssistant, 
     commands = get_settings().get(f"github_app.{commands_conf}")
     if not commands:
         with get_logger().contextualize(**log_context):
-            get_logger().info(f"New PR, but no auto commands configured")
+            get_logger().info("New PR, but no auto commands configured")
         return
     for command in commands:
         split_command = command.split(" ")
