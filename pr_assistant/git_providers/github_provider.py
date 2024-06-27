@@ -268,7 +268,7 @@ class GithubProvider(GitProvider):
             self.pr.create_review(commit=self.last_commit_id, comments=comments)
         except Exception as e:
             if get_settings().config.verbosity_level >= 2:
-                get_logger().error(f"Failed to publish inline comments")
+                get_logger().error("Failed to publish inline comments")
 
             if (getattr(e, "status", None) == 422
                     and get_settings().github.publish_inline_comments_fallback_with_verification and not disable_fallback):
