@@ -31,7 +31,7 @@ Also note that collapsible are not supported in _Bitbucket_. Hence, the suggesti
 
 ### Automatic triggering
 
-To run the `improve` automatically when a PR is opened, define in a [configuration file](https://pr-assistant-docs.khulnasoft.com/usage-guide/configuration_options/#wiki-configuration-file):
+To run the `improve` automatically when a PR is opened, define in a [configuration file](https://khulnasoft.github.io/usage-guide/configuration_options/#wiki-configuration-file):
 ```
 [github_app]
 pr_commands = [
@@ -133,7 +133,7 @@ Hence, the total number of suggestions is proportional to the number of chunks, 
 
 !!! tip "Extra instructions"
 
-    Extra instructions are very important for the `imrpove` tool, since they enable you to guide the model to suggestions that are more relevant to the specific needs of the project.
+    Extra instructions are very important for the `improve` tool, since they enable you to guide the model to suggestions that are more relevant to the specific needs of the project.
     
     Be specific, clear, and concise in the instructions. With extra instructions, you are the prompter. Specify relevant aspects that you want the model to focus on.
     
@@ -152,7 +152,7 @@ Hence, the total number of suggestions is proportional to the number of chunks, 
 
 !!! tip "Review vs. Improve tools comparison"
 
-    - The [review](https://pr-assistant-docs.khulnasoft.com/tools/review/) tool includes a section called 'Possible issues', that also provide feedback on the PR Code.
+    - The [review](https://khulnasoft.github.io/tools/review/) tool includes a section called 'Possible issues', that also provide feedback on the PR Code.
     In this section, the model is instructed to focus **only** on [major bugs and issues](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_reviewer_prompts.toml#L71).
     - The `improve` tool, on the other hand, has a broader mandate, and in addition to bugs and issues, it can also give suggestions for improving code quality and making the code more efficient, readable, and maintainable (see [here](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_code_suggestions_prompts.toml#L34)).
     - Hence, if you are interested only in feedback about clear bugs, the `review` tool might suffice. If you want a more detailed feedback, including broader suggestions for improving the PR code, also enable the `improve` tool to run on each PR.
@@ -160,12 +160,12 @@ Hence, the total number of suggestions is proportional to the number of chunks, 
 ## A note on code suggestions quality
 
 - While the current AI for code is getting better and better (GPT-4), it's not flawless. Not all the suggestions will be perfect, and a user should not accept all of them automatically. Critical reading and judgment are required.
-- While mistakes of the AI are rare but can happen, a real benefit from the suggestions of the `improve` (and [`review`](https://pr-assistant-docs.khulnasoft.com/tools/review/)) tool is to catch, with high probability, **mistakes or bugs done by the PR author**, when they happen. So, it's a good practice to spend the needed ~30-60 seconds to review the suggestions, even if not all of them are always relevant.
+- While mistakes of the AI are rare but can happen, a real benefit from the suggestions of the `improve` (and [`review`](https://khulnasoft.github.io/tools/review/)) tool is to catch, with high probability, **mistakes or bugs done by the PR author**, when they happen. So, it's a good practice to spend the needed ~30-60 seconds to review the suggestions, even if not all of them are always relevant.
 - The hierarchical structure of the suggestions is designed to help the user to _quickly_ understand them, and to decide which ones are relevant and which are not:
 
     - Only if the `Category` header is relevant, the user should move to the summarized suggestion description
     - Only if the summarized suggestion description is relevant, the user should click on the collapsible, to read the full suggestion description with a code preview example.
 
-In addition, we recommend to use the `exra_instructions` field to guide the model to suggestions that are more relevant to the specific needs of the project. 
+In addition, we recommend to use the `extra_instructions` field to guide the model to suggestions that are more relevant to the specific needs of the project. 
 <br>
 Consider also trying the [Custom Prompt Tool](./custom_prompt.md) 💎, that will **only** propose code suggestions that follow specific guidelines defined by user.

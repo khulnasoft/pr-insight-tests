@@ -2,7 +2,7 @@
 ## Getting Started with PR-Assistant Pro
 
 PR-Assistant Pro is a versatile application compatible with GitHub, GitLab, and BitBucket, hosted by KhulnaSoft.
-See [here](https://pr-assistant-docs.khulnasoft.com/#pr-assistant-pro) for more details about the benefits of using PR-Assistant Pro.
+See [here](https://khulnasoft.github.io/#pr-assistant-pro) for more details about the benefits of using PR-Assistant Pro.
 
 Interested parties can subscribe to PR-Assistant Pro through the following [link](https://www.khulnasoft.com/pricing/). 
 After subscribing, you are granted the ability to easily install the application across any of your repositories.

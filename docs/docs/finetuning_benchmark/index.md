@@ -53,7 +53,7 @@ Here are the results:
 ### Training dataset
 
 Our training dataset comprises 25,000 pull requests, aggregated from permissive license repos. For each pull request, we generated responses for the three main tools of PR-Assistant:
-[Describe](https://pr-assistant-docs.khulnasoft.com/tools/describe/), [Review](https://pr-assistant-docs.khulnasoft.com/tools/improve/) and [Improve](https://pr-assistant-docs.khulnasoft.com/tools/improve/).
+[Describe](https://khulnasoft.github.io/tools/describe/), [Review](https://khulnasoft.github.io/tools/improve/) and [Improve](https://khulnasoft.github.io/tools/improve/).
 
 On the raw data collected, we employed various automatic and manual cleaning techniques to ensure the outputs were of the highest quality, and suitable for instruct-tuning.
 

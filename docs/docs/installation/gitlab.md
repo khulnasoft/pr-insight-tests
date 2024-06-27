@@ -7,7 +7,7 @@
 ```
 WEBHOOK_SECRET=$(python -c "import secrets; print(secrets.token_hex(10))")
 ```
-3. Follow the instructions to build the Docker image, setup a secrets file and deploy on your own server from [here](https://pr-assistant-docs.khulnasoft.com/installation/github/#run-as-a-github-app) steps 4-7.
+3. Follow the instructions to build the Docker image, setup a secrets file and deploy on your own server from [here](https://khulnasoft.github.io/installation/github/#run-as-a-github-app) steps 4-7.
 
 4. In the secrets file, fill in the following:
     - Your OpenAI key.

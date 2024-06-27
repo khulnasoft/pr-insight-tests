@@ -131,7 +131,7 @@ async def handle_webhook(background_tasks: BackgroundTasks, request: Request):
                 content=json.dumps({"message": "Internal server error"}),
             )
     return JSONResponse(
-        status_code=status.HTTP_202_ACCEPTED, content=jsonable_encoder({"message": "webhook triggerd successfully"})
+        status_code=status.HTTP_202_ACCEPTED, content=jsonable_encoder({"message": "webhook triggered successfully"})
     )
 
 @router.get("/")

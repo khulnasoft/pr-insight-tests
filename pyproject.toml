@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pr-assistant"
-version = "0.2.2"
+version = "0.2.3"
 
 authors = [{name= "KhulnaSoft", email = "info@khulnasoft.com"}]
 
@@ -30,7 +30,7 @@ dependencies = {file = ["requirements.txt"]}
 
 [project.urls]
 "Homepage" = "https://github.com/khulnasoft/pr-assistant"
-"Documentation" = "https://pr-assistant-docs.khulnasoft.com/"
+"Documentation" = "https://khulnasoft.github.io/"
 
 [tool.setuptools]
 include-package-data = true

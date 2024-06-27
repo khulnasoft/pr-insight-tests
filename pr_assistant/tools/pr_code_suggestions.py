@@ -11,7 +11,7 @@ from pr_assistant.algo.pr_processing import get_pr_diff, get_pr_multi_diffs, ret
 from pr_assistant.algo.token_handler import TokenHandler
 from pr_assistant.algo.utils import load_yaml, replace_code_tags, ModelType, show_relevant_configurations
 from pr_assistant.config_loader import get_settings
-from pr_assistant.git_providers import get_git_provider
+from pr_assistant.git_providers import get_git_provider, get_git_provider_with_context
 from pr_assistant.git_providers.git_provider import get_main_pr_language
 from pr_assistant.log import get_logger
 from pr_assistant.servers.help import HelpMessage
@@ -22,7 +22,7 @@ class PRCodeSuggestions:
     def __init__(self, pr_url: str, cli_mode=False, args: list = None,
                  ai_handler: partial[BaseAiHandler,] = LiteLLMAIHandler):
 
-        self.git_provider = get_git_provider()(pr_url)
+        self.git_provider = get_git_provider_with_context(pr_url)
         self.main_language = get_main_pr_language(
             self.git_provider.get_languages(), self.git_provider.get_files()
         )
@@ -75,7 +75,8 @@ class PRCodeSuggestions:
             relevant_configs = {'pr_code_suggestions': dict(get_settings().pr_code_suggestions),
                                 'config': dict(get_settings().config)}
             get_logger().debug("Relevant configs", artifacts=relevant_configs)
-            if get_settings().config.publish_output and get_settings().config.publish_output_progress:
+            if (get_settings().config.publish_output and get_settings().config.publish_output_progress and
+                    not get_settings().config.get('is_auto_command', False)):
                 if self.git_provider.is_supported("gfm_markdown"):
                     self.progress_response = self.git_provider.publish_comment(self.progress)
                 else:

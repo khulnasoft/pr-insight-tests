@@ -21,7 +21,7 @@ class PRHelpMessage:
             pr_comment = "## PR Assistant Walkthrough 🤖\n\n"
             pr_comment += "Welcome to the PR Assistant, an AI-powered tool for automated pull request analysis, feedback, suggestions and more."""
             pr_comment += "\n\nHere is a list of tools you can use to interact with the PR Assistant:\n"
-            base_path = "https://pr-assistant-docs.khulnasoft.com/tools"
+            base_path = "https://khulnasoft.github.io/tools"
 
             tool_names = []
             tool_names.append(f"[DESCRIBE]({base_path}/describe/)")

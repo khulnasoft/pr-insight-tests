@@ -15,7 +15,7 @@ from starlette_context.middleware import RawContextMiddleware
 from pr_assistant.agent.pr_assistant import PRAssistant
 from pr_assistant.algo.utils import update_settings_from_args
 from pr_assistant.config_loader import get_settings, global_settings
-from pr_assistant.git_providers import get_git_provider
+from pr_assistant.git_providers import get_git_provider, get_git_provider_with_context
 from pr_assistant.git_providers.git_provider import IncrementalPR
 from pr_assistant.git_providers.utils import apply_repo_settings
 from pr_assistant.identity_providers import get_identity_provider
@@ -49,6 +49,7 @@ async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Req
     context["installation_id"] = installation_id
     context["settings"] = copy.deepcopy(global_settings)
 
+    context["git_provider"] = None
     background_tasks.add_task(handle_request, body, event=request.headers.get("X-GitHub-Event", None))
     return {}
 
@@ -111,7 +112,7 @@ async def handle_comments_on_pr(body: Dict[str, Any],
         return {}
     log_context["api_url"] = api_url
     comment_id = body.get("comment", {}).get("id")
-    provider = get_git_provider()(pr_url=api_url)
+    provider = get_git_provider_with_context(pr_url=api_url)
     with get_logger().contextualize(**log_context):
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
             get_logger().info(f"Processing comment on PR {api_url=}, comment_body={comment_body}")
@@ -128,6 +129,7 @@ async def handle_new_pr_opened(body: Dict[str, Any],
                                log_context: Dict[str, Any],
                                agent: PRAssistant):
     title = body.get("pull_request", {}).get("title", "")
+    get_settings().config.is_auto_command = True
 
     # logic to ignore PRs with specific titles (e.g. "[Auto] ...")
     ignore_pr_title_re = get_settings().get("GITHUB_APP.IGNORE_PR_TITLE", [])
@@ -143,7 +145,7 @@ async def handle_new_pr_opened(body: Dict[str, Any],
         return {}
     if action in get_settings().github_app.handle_pr_actions:  # ['opened', 'reopened', 'ready_for_review']
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
-            await _perform_auto_commands_github("pr_commands", agent, body, api_url, log_context)
+                await _perform_auto_commands_github("pr_commands", agent, body, api_url, log_context)
         else:
             get_logger().info(f"User {sender=} is not eligible to process PR {api_url=}")
 
@@ -201,13 +203,12 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
 
     try:
         if get_settings().github_app.push_trigger_wait_for_initial_review and not get_git_provider()(api_url,
-                                                                                                     incremental=IncrementalPR(
-                                                                                                             True)).previous_review:
+                                                                                                     incremental=IncrementalPR(True)).previous_review:
             get_logger().info(f"Skipping incremental review because there was no initial review for {api_url=} yet")
             return {}
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
-            get_logger().info(f"Performing incremental review for {api_url=} because of {event=} and {action=}")
-            await _perform_auto_commands_github("push_commands", agent, body, api_url, log_context)
+                get_logger().info(f"Performing incremental review for {api_url=} because of {event=} and {action=}")
+                await _perform_auto_commands_github("push_commands", agent, body, api_url, log_context)
 
     finally:
         # release the waiting task block
@@ -241,7 +242,7 @@ def get_log_context(body, event, action, build_number):
         app_name = get_settings().get("CONFIG.APP_NAME", "Unknown")
         log_context = {"action": action, "event": event, "sender": sender, "server_type": "github_app",
                        "request_id": uuid.uuid4().hex, "build_number": build_number, "app_name": app_name,
-                       "repo": repo, "git_org": git_org, "installation_id": installation_id}
+                        "repo": repo, "git_org": git_org, "installation_id": installation_id}
     except Exception as e:
         get_logger().error("Failed to get log context", e)
         log_context = {}
@@ -268,6 +269,9 @@ async def handle_request(body: Dict[str, Any], event: str):
             get_logger().info(f"Ignoring PR from '{sender=}' because it is a bot")
         return {}
 
+    if 'check_run' in body: # handle failed checks
+        # get_logger().debug(f'Request body', artifact=body, event=event) # added inside handle_checks
+        pass
     # handle comments on PRs
     if action == 'created':
         get_logger().debug('Request body', artifact=body, event=event)
@@ -276,6 +280,8 @@ async def handle_request(body: Dict[str, Any], event: str):
     elif event == 'pull_request' and action != 'synchronize' and action != 'closed':
         get_logger().debug('Request body', artifact=body, event=event)
         await handle_new_pr_opened(body, event, sender, sender_id, action, log_context, agent)
+    elif event == "issue_comment" and 'edited' in action:
+        pass # handle_checkbox_clicked
     # handle pull_request event with synchronize action - "push trigger" for new commits
     elif event == 'pull_request' and action == 'synchronize':
         get_logger().debug('Request body', artifact=body, event=event)
@@ -335,9 +341,8 @@ async def _perform_auto_commands_github(commands_conf: str, agent: PRAssistant, 
         args = split_command[1:]
         other_args = update_settings_from_args(args)
         new_command = ' '.join([command] + other_args)
-        with get_logger().contextualize(**log_context):
-            get_logger().info(f"{commands_conf}. Performing auto command '{new_command}', for {api_url=}")
-            await agent.handle_request(api_url, new_command)
+        get_logger().info(f"{commands_conf}. Performing auto command '{new_command}', for {api_url=}")
+        await agent.handle_request(api_url, new_command)
 
 
 @router.get("/")
@@ -356,6 +361,7 @@ app.include_router(router)
 
 def start():
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
+    
 
 if __name__ == '__main__':
     start()
