@@ -16,7 +16,7 @@ from ..log import get_logger
 
 class BitbucketServerProvider(GitProvider):
     def __init__(
-        self, pr_url: Optional[str] = None, incremental: Optional[bool] = False
+            self, pr_url: Optional[str] = None, incremental: Optional[bool] = False
     ):
         s = requests.Session()
         try:
@@ -115,8 +115,11 @@ class BitbucketServerProvider(GitProvider):
                 get_logger().error(f"Failed to publish code suggestion, error: {e}")
             return False
 
-    def is_supported(self, capability: str) -> bool:
-        if capability in ['get_issue_comments', 'get_labels', 'gfm_markdown']:
+    def publish_file_comments(self, file_comments: list) -> bool:
+         pass
+
+     def is_supported(self, capability: str) -> bool:
+         if capability in ['get_issue_comments', 'get_labels', 'gfm_markdown', 'publish_file_comments']:
             return False
         return True
 
@@ -308,6 +311,9 @@ class BitbucketServerProvider(GitProvider):
     def get_pr_branch(self):
         return self.pr.fromRef['displayId']
 
+    def get_pr_owner_id(self) -> str | None:
+         return self.workspace_slug
+
     def get_pr_description_full(self):
         if hasattr(self.pr, "description"):
             return self.pr.description
@@ -330,14 +336,29 @@ class BitbucketServerProvider(GitProvider):
 
     @staticmethod
     def _parse_bitbucket_server(url: str) -> str:
+        # pr url format: f"{bitbucket_server}/projects/{project_name}/repos/{repository_name}/pull-requests/{pr_id}"
         parsed_url = urlparse(url)
+        server_path = parsed_url.path.split("/projects/")
+        if len(server_path) > 1:
+            server_path = server_path[0].strip("/")
+            return f"{parsed_url.scheme}://{parsed_url.netloc}/{server_path}".strip("/")
         return f"{parsed_url.scheme}://{parsed_url.netloc}"
 
     @staticmethod
     def _parse_pr_url(pr_url: str) -> Tuple[str, str, int]:
+        # pr url format: f"{bitbucket_server}/projects/{project_name}/repos/{repository_name}/pull-requests/{pr_id}"
         parsed_url = urlparse(pr_url)
+
         path_parts = parsed_url.path.strip("/").split("/")
-        if len(path_parts) < 6 or path_parts[4] != "pull-requests":
+
+        try:
+            projects_index = path_parts.index("projects")
+        except ValueError as e:
+            raise ValueError(f"The provided URL '{pr_url}' does not appear to be a Bitbucket PR URL")
+
+        path_parts = path_parts[projects_index:]
+
+        if len(path_parts) < 6 or path_parts[2] != "repos" or path_parts[4] != "pull-requests":
             raise ValueError(
                 f"The provided URL '{pr_url}' does not appear to be a Bitbucket PR URL"
             )
@@ -364,8 +385,8 @@ class BitbucketServerProvider(GitProvider):
         return ""
 
     def get_commit_messages(self):
-        def get_commit_messages(self):
-            raise NotImplementedError("Get commit messages function not implemented yet.")
+        return ""
+        
     # bitbucket does not support labels
     def publish_description(self, pr_title: str, description: str):
         payload = {
