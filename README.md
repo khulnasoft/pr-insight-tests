@@ -54,7 +54,7 @@ See more [here](https://www.youtube.com/watch?v=v9bJ1frtPcg)
 
 
 ### May 21, 2024
-Check out KhulnaSoft new project, [**Cover-Agent**](https://github.com/KhulnaSoft/cover-agent), that can automatically generate qualified tests to enhance existing test suites, aiming to increase code and behavior coverage efficiently.
+Check out KhulnaSoft new project, [**Coverage-Ai**](https://github.com/KhulnaSoft/coverage-ai), that can automatically generate qualified tests to enhance existing test suites, aiming to increase code and behavior coverage efficiently.
 
 
 ## Overview
