@@ -19,7 +19,7 @@ The tool will generate tests for the selected component (if no component is stat
 
 ![test3](https://khulnasoft.com/images/pr_assistant/test3.png){width=768}
 
-(Example taken from [here](https://github.com/khulnasoft/pr-assistant/pull/598#issuecomment-1913679429)):
+(Example taken from [here](https://github.com/Khulnasoft/pr-assistant/pull/598#issuecomment-1913679429)):
 
 **Notes**
 - Language that are currently supported by the tool: Python, Java, C++, JavaScript, TypeScript, C#.

@@ -31,7 +31,7 @@ Also note that collapsible are not supported in _Bitbucket_. Hence, the suggesti
 
 ### Automatic triggering
 
-To run the `improve` automatically when a PR is opened, define in a [configuration file](https://khulnasoft.github.io/usage-guide/configuration_options/#wiki-configuration-file):
+To run the `improve` automatically when a PR is opened, define in a [configuration file](https://pr-assistant-docs.khulnasoft.com/usage-guide/configuration_options/#wiki-configuration-file):
 ```
 [github_app]
 pr_commands = [
@@ -47,19 +47,75 @@ num_code_suggestions_per_chunk = ...
 - The `pr_commands` lists commands that will be executed automatically when a PR is opened.
 - The `[pr_code_suggestions]` section contains the configurations for the `improve` tool you want to edit (if any)
 
-### Extended mode
+## Usage Tips
 
-An extended mode, which does not involve PR Compression and provides more comprehensive suggestions, can be invoked by commenting on any PR by setting:
+### Self-review
+If you set in a configuration file:
 ```
 [pr_code_suggestions]
-auto_extended_mode=true
+demand_code_suggestions_self_review = true
 ```
-(This mode is true by default).
+The `improve` tool will add a checkbox below the suggestions, prompting user to acknowledge that they have reviewed the suggestions.
+You can set the content of the checkbox text via:
+```
+[pr_code_suggestions]
+code_suggestions_self_review_text = "... (your text here) ..."
+```
 
-Note that the extended mode divides the PR code changes into chunks, up to the token limits, where each chunk is handled separately (might use multiple calls to GPT-4 for large PRs).
-Hence, the total number of suggestions is proportional to the number of chunks, i.e., the size of the PR.
+![self_review_1](https://khulnasoft.com/images/pr_assistant/self_review_1.png){width=512}
 
 
+💎 In addition, by setting:
+```
+[pr_code_suggestions]
+approve_pr_on_self_review = true
+```
+the tool can automatically approve the PR when the user checks the self-review checkbox.
+
+!!! tip "Tip - demanding self-review from the PR author"
+    If you set the number of required reviewers for a PR to 2, this effectively means that the PR author must click the self-review checkbox before the PR can be merged (in addition to a human reviewer).
+
+    ![self_review_2](https://khulnasoft.com/images/pr_assistant/self_review_2.png){width=512}
+
+### `Extra instructions` and `best practices`
+
+#### Extra instructions
+You can use the `extra_instructions` configuration option to give the AI model additional instructions for the `improve` tool.
+Be specific, clear, and concise in the instructions. With extra instructions, you are the prompter. Specify relevant aspects that you want the model to focus on.
+    
+Examples for possible instructions:
+```
+[pr_code_suggestions]
+extra_instructions="""\
+(1) Answer in japanese
+(2) Don't suggest to add try-excpet block
+(3) Ignore changes in toml files
+...
+"""
+```
+Use triple quotes to write multi-line instructions. Use bullet points or numbers to make the instructions more readable.
+
+#### Best practices 💎
+Another option to give additional guidance to the AI model is by creating a dedicated [**wiki page**](https://github.com/Khulnasoft/pr-assistant/wiki) called `best_practices.md`. 
+This page can contain a list of best practices, coding standards, and guidelines that are specific to your repo/organization
+
+The AI model will use this page as a reference, and in case the PR code violates any of the guidelines, it will suggest improvements accordingly, with a dedicated label: `Organization
+best practice`. 
+
+Example for a `best_practices.md` content can be found [here](https://github.com/Khulnasoft/pr-assistant/blob/main/docs/docs/usage-guide/EXAMPLE_BEST_PRACTICE.md) (adapted from Google's [pyguide](https://google.github.io/styleguide/pyguide.html)).
+This file is only an example. Since it is used as a prompt for an AI model, we want to emphasize the following:
+
+- It should be written in a clear and concise manner
+- If needed, it should give short relevant code snippets as examples
+- Up to 800 lines are allowed
+
+
+Example results:
+
+![best_practice](https://khulnasoft.com/images/pr_assistant/org_best_practice.png){width=512}
+
+Note that while the `extra instructions` are more related to the way the `improve` tool behaves, the `best_practices.md` file is a general guideline for the way code should be written in the repo.
+Using a combination of both can help the AI model to provide relevant and tailored suggestions.
 
 ## Configuration options
 
@@ -129,38 +185,10 @@ Hence, the total number of suggestions is proportional to the number of chunks, 
   </tr>
 </table>
 
-## Usage Tips
-
-!!! tip "Extra instructions"
-
-    Extra instructions are very important for the `improve` tool, since they enable you to guide the model to suggestions that are more relevant to the specific needs of the project.
-    
-    Be specific, clear, and concise in the instructions. With extra instructions, you are the prompter. Specify relevant aspects that you want the model to focus on.
-    
-    Examples for extra instructions:
-    ```
-    [pr_code_suggestions] # /improve #
-    extra_instructions="""\
-    Emphasize the following aspects:
-    - Does the code logic cover relevant edge cases?
-    - Is the code logic clear and easy to understand?
-    - Is the code logic efficient?
-    ...
-    """
-    ```
-    Use triple quotes to write multi-line instructions. Use bullet points to make the instructions more readable.
-
-!!! tip "Review vs. Improve tools comparison"
-
-    - The [review](https://khulnasoft.github.io/tools/review/) tool includes a section called 'Possible issues', that also provide feedback on the PR Code.
-    In this section, the model is instructed to focus **only** on [major bugs and issues](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_reviewer_prompts.toml#L71).
-    - The `improve` tool, on the other hand, has a broader mandate, and in addition to bugs and issues, it can also give suggestions for improving code quality and making the code more efficient, readable, and maintainable (see [here](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_code_suggestions_prompts.toml#L34)).
-    - Hence, if you are interested only in feedback about clear bugs, the `review` tool might suffice. If you want a more detailed feedback, including broader suggestions for improving the PR code, also enable the `improve` tool to run on each PR.
-
 ## A note on code suggestions quality
 
 - While the current AI for code is getting better and better (GPT-4), it's not flawless. Not all the suggestions will be perfect, and a user should not accept all of them automatically. Critical reading and judgment are required.
-- While mistakes of the AI are rare but can happen, a real benefit from the suggestions of the `improve` (and [`review`](https://khulnasoft.github.io/tools/review/)) tool is to catch, with high probability, **mistakes or bugs done by the PR author**, when they happen. So, it's a good practice to spend the needed ~30-60 seconds to review the suggestions, even if not all of them are always relevant.
+- While mistakes of the AI are rare but can happen, a real benefit from the suggestions of the `improve` (and [`review`](https://pr-assistant-docs.khulnasoft.com/tools/review/)) tool is to catch, with high probability, **mistakes or bugs done by the PR author**, when they happen. So, it's a good practice to spend the needed ~30-60 seconds to review the suggestions, even if not all of them are always relevant.
 - The hierarchical structure of the suggestions is designed to help the user to _quickly_ understand them, and to decide which ones are relevant and which are not:
 
     - Only if the `Category` header is relevant, the user should move to the summarized suggestion description

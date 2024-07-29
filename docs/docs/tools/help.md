@@ -8,7 +8,7 @@ It can be invoked manually by commenting on any PR:
 ```
 
 ## Example usage
-An example [result](https://github.com/khulnasoft/pr-assistant/pull/546#issuecomment-1868524805):
+An example [result](https://github.com/Khulnasoft/pr-assistant/pull/546#issuecomment-1868524805):
 
 ![Help 1](https://khulnasoft.com/images/pr_assistant/help1.png){width=750}
 

@@ -16,7 +16,7 @@ def main():
     provider = "github"  # GitHub provider
     user_token = "..."  # GitHub user token
     openai_key = "ghs_afsdfasdfsdf"  # Example OpenAI key
-    pr_url = "..."  # PR URL, for example 'https://github.com/khulnasoft/pr-assistant/pull/809'
+    pr_url = "..."  # PR URL, for example 'https://github.com/Khulnasoft/pr-assistant/pull/809'
     command = "/improve"  # Command to run (e.g. '/review', '/describe', 'improve', '/ask="What is the purpose of this PR?"')
 
     # Setting the configurations
@@ -32,3 +32,4 @@ def main():
 if __name__ == '__main__':
     main()
 """
+

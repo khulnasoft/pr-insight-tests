@@ -25,7 +25,7 @@ class PRUpdateChangelog:
             self.git_provider.get_languages(), self.git_provider.get_files()
         )
         self.commit_changelog = get_settings().pr_update_changelog.push_changelog_changes
-        self._get_changlog_file()  # self.changelog_file_str
+        self._get_changelog_file()  # self.changelog_file_str
 
         self.ai_handler = ai_handler()
         self.ai_handler.main_pr_language = self.main_language
@@ -79,7 +79,7 @@ class PRUpdateChangelog:
         if get_settings().get('config', {}).get('output_relevant_configurations', False):
             answer += show_relevant_configurations(relevant_section='pr_update_changelog')
 
-        get_logger().debug("PR output", artifact=answer)
+        get_logger().debug(f"PR output", artifact=answer)
 
         if get_settings().config.publish_output:
             self.git_provider.remove_initial_comment()
@@ -91,10 +91,10 @@ class PRUpdateChangelog:
     async def _prepare_prediction(self, model: str):
         self.patches_diff = get_pr_diff(self.git_provider, self.token_handler, model)
         if self.patches_diff:
-            get_logger().debug("PR diff", artifact=self.patches_diff)
+            get_logger().debug(f"PR diff", artifact=self.patches_diff)
             self.prediction = await self._get_prediction(model)
         else:
-            get_logger().error("Error getting PR diff")
+            get_logger().error(f"Error getting PR diff")
             self.prediction = ""
 
     async def _get_prediction(self, model: str):
@@ -103,8 +103,8 @@ class PRUpdateChangelog:
         environment = Environment(undefined=StrictUndefined)
         system_prompt = environment.from_string(get_settings().pr_update_changelog_prompt.system).render(variables)
         user_prompt = environment.from_string(get_settings().pr_update_changelog_prompt.user).render(variables)
-        response, finish_reason = await self.ai_handler.chat_completion(model=model, temperature=0.2,
-                                                                        system=system_prompt, user=user_prompt)
+        response, finish_reason = await self.ai_handler.chat_completion(
+            model=model, system=system_prompt, user=user_prompt, temperature=get_settings().config.temperature)
 
         return response
 
@@ -163,7 +163,7 @@ Example:
 """
         return example_changelog
 
-    def _get_changlog_file(self):
+    def _get_changelog_file(self):
         try:
             self.changelog_file = self.git_provider.get_pr_file_content(
                 "CHANGELOG.md", self.git_provider.get_pr_branch()

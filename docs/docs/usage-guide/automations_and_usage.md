@@ -9,7 +9,7 @@ Examples of invoking the different tools via the CLI:
 - **Reflect**:      `python -m pr_assistant.cli --pr_url=<pr_url>  reflect`
 - **Update Changelog**:      `python -m pr_assistant.cli --pr_url=<pr_url>  update_changelog`
 
-`<pr_url>` is the url of the relevant PR (for example: [#50](https://github.com/khulnasoft/pr-assistant/pull/50)).
+`<pr_url>` is the url of the relevant PR (for example: [#50](https://github.com/Khulnasoft/pr-assistant/pull/50)).
 
 **Notes:**
 
@@ -26,10 +26,20 @@ verbosity_level=2
 ```
 This is useful for debugging or experimenting with different tools.
 
+(3)
+
+**git provider**: The [git_provider](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml#L5) field in a configuration file determines the GIT provider that will be used by PR-Assistant. Currently, the following providers are supported:
+`
+"github", "gitlab", "bitbucket", "azure", "codecommit", "local", "gerrit"
+`
+
+Default is "github".
+
+
 
 ### Online usage
 
-Online usage means invoking PR-Assistant tools by [comments](https://github.com/khulnasoft/pr-assistant/pull/229#issuecomment-1695021901) on a PR.
+Online usage means invoking PR-Assistant tools by [comments](https://github.com/Khulnasoft/pr-assistant/pull/229#issuecomment-1695021901) on a PR.
 Commands for invoking the different tools via comments:
 
 - **Review**:       `/review`
@@ -45,7 +55,7 @@ For example, if you want to edit the `review` tool configurations, you can run:
 ```
 /review --pr_reviewer.extra_instructions="..." --pr_reviewer.require_score_review=false
 ```
-Any configuration value in [configuration file](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) file can be similarly edited. Comment `/config` to see the list of available configurations.
+Any configuration value in [configuration file](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) file can be similarly edited. Comment `/config` to see the list of available configurations.
 
 
 ## GitHub App
@@ -56,7 +66,7 @@ Any configuration value in [configuration file](https://github.com/khulnasoft/pr
 
 ### GitHub app automatic tools when a new PR is opened
 
-The [github_app](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml#L108) section defines GitHub app specific configurations.  
+The [github_app](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml#L108) section defines GitHub app specific configurations.  
 
 The configuration parameter `pr_commands` defines the list of tools that will be **run automatically** when a new PR is opened.
 ```
@@ -81,7 +91,7 @@ Every time you run the `describe` tool, including automatic runs, the PR title w
 To cancel the automatic run of all the tools, set:
 ```
 [github_app]
-handle_pr_actions = []
+pr_commands = []
 ```
 
 You can also disable automatic runs for PRs with specific titles, by setting the `ignore_pr_titles` parameter with the relevant regex. For example:
@@ -126,7 +136,7 @@ If not set, the default configuration is for all three tools to run automaticall
 Review result is output as JSON to `steps.{step-id}.outputs.review` property.
 The JSON structure is equivalent to the yaml data structure defined in [pr_reviewer_prompts.toml](https://github.com/idubnori/pr-assistant/blob/main/pr_assistant/settings/pr_reviewer_prompts.toml).
 
-Note that you can give additional config parameters by adding environment variables to `.github/workflows/pr_assistant.yml`, or by using a `.pr_assistant.toml` [configuration file](https://khulnasoft.github.io/usage-guide/configuration_options/#global-configuration-file) in the root of your repo
+Note that you can give additional config parameters by adding environment variables to `.github/workflows/pr_assistant.yml`, or by using a `.pr_assistant.toml` [configuration file](https://pr-assistant-docs.khulnasoft.com/usage-guide/configuration_options/#global-configuration-file) in the root of your repo
 
 For example, you can set an environment variable: `pr_description.publish_labels=false`, or add a `.pr_assistant.toml` file with the following content:
 ```
@@ -161,7 +171,7 @@ push_commands = [
 Note that to use the 'handle_push_trigger' feature, you need to give the gitlab webhook also the "Push events" scope.
 
 ## BitBucket App
-Similar to GitHub app, when running PR-Assistant from BitBucket App, the default [configuration file](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) from a pre-built docker will be initially loaded.
+Similar to GitHub app, when running PR-Assistant from BitBucket App, the default [configuration file](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) from a pre-built docker will be initially loaded.
 
 By uploading a local `.pr_assistant.toml` file to the root of the repo's main branch, you can edit and customize any configuration parameter. Note that you need to upload `.pr_assistant.toml` prior to creating a PR, in order for the configuration to take effect.
 
@@ -182,9 +192,11 @@ Specifically, set the following values:
 [bitbucket_app]
 pr_commands = [
     "/review --pr_reviewer.num_code_suggestions=0",
-    "/improve --pr_code_suggestions.commitable_code_suggestions=true",
+    "/improve --pr_code_suggestions.commitable_code_suggestions=true --pr_code_suggestions.suggestions_score_threshold=7",
 ]
 ```
+Note that we set specifically for bitbucket, we recommend using: `--pr_code_suggestions.suggestions_score_threshold=7` and that is the default value we set for bitbucket.
+Since this platform only supports inline code suggestions, we want to limit the number of suggestions, and only present a limited number.
 
 ## Azure DevOps provider
 

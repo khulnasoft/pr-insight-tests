@@ -1,1 +1,1 @@
-# [Visit Our Docs Portal](https://khulnasoft.github.io/)
+# [Visit Our Docs Portal](https://pr-assistant-docs.khulnasoft.com/)

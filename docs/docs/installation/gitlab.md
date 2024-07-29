@@ -7,12 +7,12 @@
 ```
 WEBHOOK_SECRET=$(python -c "import secrets; print(secrets.token_hex(10))")
 ```
-3. Follow the instructions to build the Docker image, setup a secrets file and deploy on your own server from [here](https://khulnasoft.github.io/installation/github/#run-as-a-github-app) steps 4-7.
+3. Follow the instructions to build the Docker image, setup a secrets file and deploy on your own server from [here](https://pr-assistant-docs.khulnasoft.com/installation/github/#run-as-a-github-app) steps 4-7.
 
 4. In the secrets file, fill in the following:
     - Your OpenAI key.
     - In the [gitlab] section, fill in personal_access_token and shared_secret. The access token can be a personal access token, or a group or project access token.
-    - Set deployment_type to 'gitlab' in [configuration.toml](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml)
+    - Set deployment_type to 'gitlab' in [configuration.toml](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml)
    
 5. Create a webhook in GitLab. Set the URL to the URL of your app's server. Set the secret token to the generated secret from step 2.
 In the "Trigger" section, check the ‘comments’ and ‘merge request events’ boxes.

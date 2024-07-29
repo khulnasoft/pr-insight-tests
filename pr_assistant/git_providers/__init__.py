@@ -31,6 +31,7 @@ def get_git_provider():
         raise ValueError(f"Unknown git provider: {provider_id}")
     return _GIT_PROVIDERS[provider_id]
 
+
 def get_git_provider_with_context(pr_url) -> GitProvider:
     """
     Get a GitProvider instance for the given PR URL. If the GitProvider instance is already in the context, return it.

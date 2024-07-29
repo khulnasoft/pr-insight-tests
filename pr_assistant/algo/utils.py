@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import difflib
 import json
 import os
@@ -11,6 +12,7 @@ from enum import Enum
 from typing import Any, List, Tuple
 
 import yaml
+from pydantic import BaseModel
 from starlette_context import context
 
 from pr_assistant.algo import MAX_TOKENS
@@ -19,9 +21,21 @@ from pr_assistant.config_loader import get_settings, global_settings
 from pr_assistant.algo.types import FilePatchInfo
 from pr_assistant.log import get_logger
 
+class Range(BaseModel):
+    line_start: int  # should be 0-indexed
+    line_end: int
+    column_start: int = -1
+    column_end: int = -1
+
 class ModelType(str, Enum):
     REGULAR = "regular"
     TURBO = "turbo"
+
+
+class PRReviewHeader(str, Enum):
+    REGULAR = "## PR Reviewer Guide"
+    INCREMENTAL = "## Incremental PR Reviewer Guide"
+
 
 def get_setting(key: str) -> Any:
     try:
@@ -31,7 +45,7 @@ def get_setting(key: str) -> Any:
         return global_settings.get(key, None)
 
 
-def emphasize_header(text: str) -> str:
+def emphasize_header(text: str, only_markdown=False, reference_link=None) -> str:
     try:
         # Finding the position of the first occurrence of ": "
         colon_position = text.find(": ")
@@ -39,7 +53,16 @@ def emphasize_header(text: str) -> str:
         # Splitting the string and wrapping the first part in <strong> tags
         if colon_position != -1:
             # Everything before the colon (inclusive) is wrapped in <strong> tags
-            transformed_string = "<strong>" + text[:colon_position + 1] + "</strong>" +'<br>' + text[colon_position + 1:]
+            if only_markdown:
+                if reference_link:
+                    transformed_string = f"[**{text[:colon_position + 1]}**]({reference_link})\n" + text[colon_position + 1:]
+                else:
+                    transformed_string = f"**{text[:colon_position + 1]}**\n" + text[colon_position + 1:]
+            else:
+                if reference_link:
+                    transformed_string = f"<strong><a href='{reference_link}'>{text[:colon_position + 1]}</a></strong><br>" + text[colon_position + 1:]
+                else:
+                    transformed_string = "<strong>" + text[:colon_position + 1] + "</strong>" +'<br>' + text[colon_position + 1:]
         else:
             # If there's no ": ", return the original string
             transformed_string = text
@@ -61,8 +84,10 @@ def unique_strings(input_list: List[str]) -> List[str]:
             seen.add(item)
     return unique_list
 
-
-def convert_to_markdown(output_data: dict, gfm_supported: bool = True, incremental_review=None) -> str:
+def convert_to_markdown_v2(output_data: dict,
+                           gfm_supported: bool = True,
+                           incremental_review=None,
+                           git_provider=None) -> str:
     """
     Convert a dictionary of data into markdown format.
     Args:
@@ -86,111 +111,210 @@ def convert_to_markdown(output_data: dict, gfm_supported: bool = True, increment
     }
     markdown_text = ""
     if not incremental_review:
-        markdown_text += "## PR Reviewer Guide 🔍\n\n"
+        markdown_text += f"{PRReviewHeader.REGULAR.value} 🔍\n\n"
     else:
-        markdown_text += "## Incremental PR Reviewer Guide 🔍\n\n"
+        markdown_text += f"{PRReviewHeader.INCREMENTAL.value} 🔍\n\n"
         markdown_text += f"⏮️ Review for commits since previous PR-Assistant review {incremental_review}.\n\n"
-    if gfm_supported:
-        markdown_text += "<table>\n<tr>\n"
-        # markdown_text += """<td> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Feedback&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td> <td></td></tr>"""
-
     if not output_data or not output_data.get('review', {}):
         return ""
 
+    if gfm_supported:
+        markdown_text += "<table>\n"
+
     for key, value in output_data['review'].items():
         if value is None or value == '' or value == {} or value == []:
-            if key.lower() != 'can_be_split':
+            if key.lower() not in ['can_be_split', 'key_issues_to_review']:
                 continue
         key_nice = key.replace('_', ' ').capitalize()
         emoji = emojis.get(key_nice, "")
-        if gfm_supported:
-            if 'Estimated effort to review' in key_nice:
-                key_nice = 'Estimated&nbsp;effort&nbsp;to&nbsp;review [1-5]'
-            if 'security concerns' in key_nice.lower():
-                value = emphasize_header(value.strip())
-                markdown_text += f"<tr><td> {emoji}&nbsp;<strong>{key_nice}</strong></td><td>\n\n{value}\n\n</td></tr>\n"
-            elif 'can be split' in key_nice.lower():
+        if 'Estimated effort to review' in key_nice:
+            key_nice = 'Estimated effort to review'
+            value = str(value).strip()
+            if value.isnumeric():
+                value_int = int(value)
+            else:
+                try:
+                    value_int = int(value.split(',')[0])
+                except ValueError:
+                    continue
+            blue_bars = '🔵' * value_int
+            white_bars = '⚪' * (5 - value_int)
+            value = f"{value_int} {blue_bars}{white_bars}"
+            if gfm_supported:
+                markdown_text += f"<tr><td>"
+                markdown_text += f"{emoji}&nbsp;<strong>{key_nice}</strong>: {value}"
+                markdown_text += f"</td></tr>\n"
+            else:
+                markdown_text += f"### {emoji} {key_nice}: {value}\n\n"
+        elif 'relevant tests' in key_nice.lower():
+            value = value.strip().lower()
+            if gfm_supported:
+                markdown_text += f"<tr><td>"
+                if is_value_no(value):
+                    markdown_text += f"{emoji}&nbsp;<strong>No relevant tests</strong>"
+                else:
+                    markdown_text += f"{emoji}&nbsp;<strong>PR contains tests</strong>"
+                markdown_text += f"</td></tr>\n"
+            else:
+                if is_value_no(value):
+                    markdown_text += f'### {emoji} No relevant tests\n\n'
+                else:
+                    markdown_text += f"### PR contains tests\n\n"
+        elif 'security concerns' in key_nice.lower():
+            if gfm_supported:
+                markdown_text += f"<tr><td>"
+                if is_value_no(value):
+                    markdown_text += f"{emoji}&nbsp;<strong>No security concerns identified</strong>"
+                else:
+                    markdown_text += f"{emoji}&nbsp;<strong>Security concerns</strong><br><br>\n\n"
+                    value = emphasize_header(value.strip())
+                    markdown_text += f"{value}"
+                markdown_text += f"</td></tr>\n"
+            else:
+                if is_value_no(value):
+                    markdown_text += f'### {emoji} No security concerns identified\n\n'
+                else:
+                    markdown_text += f"### {emoji} Security concerns\n\n"
+                    value = emphasize_header(value.strip())
+                    markdown_text += f"{value}\n\n"
+        elif 'can be split' in key_nice.lower():
+            if gfm_supported:
+                markdown_text += f"<tr><td>"
                 markdown_text += process_can_be_split(emoji, value)
-            elif 'key issues to review' in key_nice.lower():
-                value = value.strip()
-                issues = value.split('\n- ')
-                for i, _ in enumerate(issues):
-                    issues[i] = issues[i].strip().strip('-').strip()
-                issues = unique_strings(issues) # remove duplicates
-                number_of_issues = len(issues)
-                if number_of_issues > 1:
-                    markdown_text += f"<tr><td rowspan={number_of_issues}> {emoji}&nbsp;<strong>{key_nice}</strong></td>\n"
-                    for i, issue in enumerate(issues):
+                markdown_text += f"</td></tr>\n"
+        elif 'key issues to review' in key_nice.lower():
+            # value is a list of issues
+            if is_value_no(value):
+                if gfm_supported:
+                    markdown_text += f"<tr><td>"
+                    markdown_text += f"{emoji}&nbsp;<strong>No key issues to review</strong>"
+                    markdown_text += f"</td></tr>\n"
+                else:
+                    markdown_text += f"### {emoji} No key issues to review\n\n"
+            else:
+                # issues = value.split('\n- ')
+                issues =value
+                # for i, _ in enumerate(issues):
+                #     issues[i] = issues[i].strip().strip('-').strip()
+                if gfm_supported:
+                    markdown_text += f"<tr><td>"
+                    markdown_text += f"{emoji}&nbsp;<strong>{key_nice}</strong><br><br>\n\n"
+                else:
+                    markdown_text += f"### {emoji} Key issues to review\n\n#### \n"
+                for i, issue in enumerate(issues):
+                    try:
                         if not issue:
                             continue
-                        issue = emphasize_header(issue)
-                        if i == 0:
-                            markdown_text += f"<td>\n\n{issue}</td></tr>\n"
+                        relevant_file = issue.get('relevant_file', '').strip()
+                        issue_header = issue.get('issue_header', '').strip()
+                        issue_content = issue.get('issue_content', '').strip()
+                        start_line = int(str(issue.get('start_line', 0)).strip())
+                        end_line = int(str(issue.get('end_line', 0)).strip())
+                        reference_link = git_provider.get_line_link(relevant_file, start_line, end_line)
+
+                        if gfm_supported:
+                            if get_settings().pr_reviewer.extra_issue_links:
+                                issue_content_linked =copy.deepcopy(issue_content)
+                                referenced_variables_list = issue.get('referenced_variables', [])
+                                for component in referenced_variables_list:
+                                    name = component['variable_name'].strip().strip('`')
+
+                                    ind = issue_content.find(name)
+                                    if ind != -1:
+                                        reference_link_component = git_provider.get_line_link(relevant_file, component['relevant_line'], component['relevant_line'])
+                                        issue_content_linked = issue_content_linked[:ind-1] + f"[`{name}`]({reference_link_component})" + issue_content_linked[ind+len(name)+1:]
+                                    else:
+                                        get_logger().info(f"Failed to find variable in issue content: {component['variable_name'].strip()}")
+                                issue_content = issue_content_linked
+                            issue_str = f"<a href='{reference_link}'><strong>{issue_header}</strong></a><br>{issue_content}"
                         else:
-                            markdown_text += f"<tr>\n<td>\n\n{issue}</td></tr>\n"
-                else:
-                    value = emphasize_header(value.strip('-').strip())
-                    markdown_text += f"<tr><td> {emoji}&nbsp;<strong>{key_nice}</strong></td><td>\n\n{value}\n\n</td></tr>\n"
-            else:
-                markdown_text += f"<tr><td> {emoji}&nbsp;<strong>{key_nice}</strong></td><td>\n\n{value}\n\n</td></tr>\n"
+                            issue_str = f"[**{issue_header}**]({reference_link})\n\n{issue_content}\n\n"
+                        markdown_text += f"{issue_str}\n\n"
+                    except Exception as e:
+                        get_logger().exception(f"Failed to process key issues to review: {e}")
+                if gfm_supported:
+                    markdown_text += f"</td></tr>\n"
         else:
-            if len(value.split()) > 1:
-                markdown_text += f"{emoji} **{key_nice}:**\n\n {value}\n\n"
+            if gfm_supported:
+                markdown_text += f"<tr><td>"
+                markdown_text += f"{emoji}&nbsp;<strong>{key_nice}</strong>: {value}"
+                markdown_text += f"</td></tr>\n"
             else:
-                markdown_text += f"{emoji} **{key_nice}:** {value}\n\n"
+                markdown_text += f"### {emoji} {key_nice}: {value}\n\n"
+
     if gfm_supported:
         markdown_text += "</table>\n"
 
     if 'code_feedback' in output_data:
         if gfm_supported:
-            markdown_text += "\n\n"
-            markdown_text += "<details><summary> <strong>Code feedback:</strong></summary>\n\n"
+            markdown_text += f"\n\n"
+            markdown_text += f"<details><summary> <strong>Code feedback:</strong></summary>\n\n"
             markdown_text += "<hr>"
         else:
-            markdown_text += "\n\n** Code feedback:**\n\n"
+            markdown_text += f"\n\n### Code feedback:\n\n"
         for i, value in enumerate(output_data['code_feedback']):
             if value is None or value == '' or value == {} or value == []:
                 continue
             markdown_text += parse_code_suggestion(value, i, gfm_supported)+"\n\n"
         if markdown_text.endswith('<hr>'):
-            markdown_text = markdown_text[:-4]
+            markdown_text= markdown_text[:-4]
         if gfm_supported:
-            markdown_text += "</details>"
-    #print(markdown_text)
-
+            markdown_text += f"</details>"
 
     return markdown_text
 
 
 def process_can_be_split(emoji, value):
-    # key_nice = "Can this PR be split?"
-    key_nice = "Multiple PR themes"
-    markdown_text = ""
-    if not value or isinstance(value, list) and len(value) == 1:
-        value = "No"
-        markdown_text += f"<tr><td> {emoji}&nbsp;<strong>{key_nice}</strong></td><td>\n\n{value}\n\n</td></tr>\n"
-    else:
-        number_of_splits = len(value)
-        markdown_text += f"<tr><td rowspan={number_of_splits}> {emoji}&nbsp;<strong>{key_nice}</strong></td>\n"
-        for i, split in enumerate(value):
-            title = split.get('title', '')
-            relevant_files = split.get('relevant_files', [])
-            if i == 0:
-                markdown_text += f"<td><details><summary>\nSub-PR theme: <strong>{title}</strong></summary>\n\n"
-                markdown_text += "<hr>\n"
-                markdown_text += "Relevant files:\n"
-                markdown_text += "<ul>\n"
+    try:
+        # key_nice = "Can this PR be split?"
+        key_nice = "Multiple PR themes"
+        markdown_text = ""
+        if not value or isinstance(value, list) and len(value) == 1:
+            value = "No"
+            # markdown_text += f"<tr><td> {emoji}&nbsp;<strong>{key_nice}</strong></td><td>\n\n{value}\n\n</td></tr>\n"
+            # markdown_text += f"### {emoji} No multiple PR themes\n\n"
+            markdown_text += f"{emoji} <strong>No multiple PR themes</strong>\n\n"
+        else:
+            markdown_text += f"{emoji} <strong>{key_nice}</strong><br><br>\n\n"
+            for i, split in enumerate(value):
+                title = split.get('title', '')
+                relevant_files = split.get('relevant_files', [])
+                markdown_text += f"<details><summary>\nSub-PR theme: <b>{title}</b></summary>\n\n"
+                markdown_text += f"___\n\nRelevant files:\n\n"
                 for file in relevant_files:
-                    markdown_text += f"<li>{file}</li>\n"
-                markdown_text += "</ul>\n\n</details></td></tr>\n"
-            else:
-                markdown_text += f"<tr>\n<td><details><summary>\nSub-PR theme: <strong>{title}</strong></summary>\n\n"
-                markdown_text += "<hr>\n"
-                markdown_text += "Relevant files:\n"
-                markdown_text += "<ul>\n"
-                for file in relevant_files:
-                    markdown_text += f"<li>{file}</li>\n"
-                markdown_text += "</ul>\n\n</details></td></tr>\n"
+                    markdown_text += f"- {file}\n"
+                markdown_text += f"___\n\n"
+                markdown_text += f"</details>\n\n"
+
+                # markdown_text += f"#### Sub-PR theme: {title}\n\n"
+                # markdown_text += f"Relevant files:\n\n"
+                # for file in relevant_files:
+                #     markdown_text += f"- {file}\n"
+                # markdown_text += "\n"
+            # number_of_splits = len(value)
+            # markdown_text += f"<tr><td rowspan={number_of_splits}> {emoji}&nbsp;<strong>{key_nice}</strong></td>\n"
+            # for i, split in enumerate(value):
+            #     title = split.get('title', '')
+            #     relevant_files = split.get('relevant_files', [])
+            #     if i == 0:
+            #         markdown_text += f"<td><details><summary>\nSub-PR theme:<br><strong>{title}</strong></summary>\n\n"
+            #         markdown_text += f"<hr>\n"
+            #         markdown_text += f"Relevant files:\n"
+            #         markdown_text += f"<ul>\n"
+            #         for file in relevant_files:
+            #             markdown_text += f"<li>{file}</li>\n"
+            #         markdown_text += f"</ul>\n\n</details></td></tr>\n"
+            #     else:
+            #         markdown_text += f"<tr>\n<td><details><summary>\nSub-PR theme:<br><strong>{title}</strong></summary>\n\n"
+            #         markdown_text += f"<hr>\n"
+            #         markdown_text += f"Relevant files:\n"
+            #         markdown_text += f"<ul>\n"
+            #         for file in relevant_files:
+            #             markdown_text += f"<li>{file}</li>\n"
+            #         markdown_text += f"</ul>\n\n</details></td></tr>\n"
+    except Exception as e:
+        get_logger().exception(f"Failed to process can be split: {e}")
+        return ""
     return markdown_text
 
 
@@ -217,7 +341,7 @@ def parse_code_suggestion(code_suggestion: dict, i: int = 0, gfm_supported: bool
                     markdown_text += (f"<tr><td>{sub_key} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
                                       f"<td>\n\n<strong>\n\n{sub_value.strip()}\n\n</strong>\n</td></tr>")
                 elif sub_key.lower() == 'relevant_line':
-                    markdown_text += "<tr><td>relevant line</td>"
+                    markdown_text += f"<tr><td>relevant line</td>"
                     sub_value_list = sub_value.split('](')
                     relevant_line = sub_value_list[0].lstrip('`').lstrip('[')
                     if len(sub_value_list) > 1:
@@ -432,34 +556,38 @@ def _fix_key_value(key: str, value: str):
     return key, value
 
 
-def load_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
-    response_text = response_text.removeprefix('```yaml').rstrip('`')
+def load_yaml(response_text: str, keys_fix_yaml: List[str] = [], first_key="", last_key="") -> dict:
+    response_text = response_text.strip('\n').removeprefix('```yaml').rstrip('`')
     try:
         data = yaml.safe_load(response_text)
     except Exception as e:
         get_logger().error(f"Failed to parse AI prediction: {e}")
-        data = try_fix_yaml(response_text, keys_fix_yaml=keys_fix_yaml)
+        data = try_fix_yaml(response_text, keys_fix_yaml=keys_fix_yaml, first_key=first_key, last_key=last_key)
     return data
 
 
-def try_fix_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
+
+def try_fix_yaml(response_text: str,
+                 keys_fix_yaml: List[str] = [],
+                 first_key="",
+                 last_key="",) -> dict:
     response_text_lines = response_text.split('\n')
 
-    keys = ['relevant line:', 'suggestion content:', 'relevant file:', 'existing code:', 'improved code:']
-    keys = keys + keys_fix_yaml
+    keys_yaml = ['relevant line:', 'suggestion content:', 'relevant file:', 'existing code:', 'improved code:']
+    keys_yaml = keys_yaml + keys_fix_yaml
     # first fallback - try to convert 'relevant line: ...' to relevant line: |-\n        ...'
     response_text_lines_copy = response_text_lines.copy()
     for i in range(0, len(response_text_lines_copy)):
-        for key in keys:
+        for key in keys_yaml:
             if key in response_text_lines_copy[i] and not '|-' in response_text_lines_copy[i]:
                 response_text_lines_copy[i] = response_text_lines_copy[i].replace(f'{key}',
                                                                                   f'{key} |-\n        ')
     try:
         data = yaml.safe_load('\n'.join(response_text_lines_copy))
-        get_logger().info("Successfully parsed AI prediction after adding |-\n")
+        get_logger().info(f"Successfully parsed AI prediction after adding |-\n")
         return data
     except:
-        get_logger().info("Failed to parse AI prediction after adding |-\n")
+        get_logger().info(f"Failed to parse AI prediction after adding |-\n")
 
     # second fallback - try to extract only range from first ```yaml to ````
     snippet_pattern = r'```(yaml)?[\s\S]*?```'
@@ -468,7 +596,7 @@ def try_fix_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
         snippet_text = snippet.group()
         try:
             data = yaml.safe_load(snippet_text.removeprefix('```yaml').rstrip('`'))
-            get_logger().info("Successfully parsed AI prediction after extracting yaml snippet")
+            get_logger().info(f"Successfully parsed AI prediction after extracting yaml snippet")
             return data
         except:
             pass
@@ -478,12 +606,33 @@ def try_fix_yaml(response_text: str, keys_fix_yaml: List[str] = []) -> dict:
     response_text_copy = response_text.strip().rstrip().removeprefix('{').removesuffix('}').rstrip(':\n')
     try:
         data = yaml.safe_load(response_text_copy)
-        get_logger().info("Successfully parsed AI prediction after removing curly brackets")
+        get_logger().info(f"Successfully parsed AI prediction after removing curly brackets")
         return data
     except:
         pass
 
-    # fourth fallback - try to remove last lines
+
+    # forth fallback - try to extract yaml snippet by 'first_key' and 'last_key'
+    # note that 'last_key' can be in practice a key that is not the last key in the yaml snippet.
+    # it just needs to be some inner key, so we can look for newlines after it
+    if first_key and last_key:
+        index_start = response_text.find(f"\n{first_key}:")
+        if index_start == -1:
+            index_start = response_text.find(f"{first_key}:")
+        index_last_code = response_text.rfind(f"{last_key}:")
+        index_end = response_text.find("\n\n", index_last_code) # look for newlines after last_key
+        if index_end == -1:
+            index_end = len(response_text)
+        response_text_copy = response_text[index_start:index_end].strip().strip('```yaml').strip('`').strip()
+        try:
+            data = yaml.safe_load(response_text_copy)
+            get_logger().info(f"Successfully parsed AI prediction after extracting yaml snippet")
+            return data
+        except:
+            pass
+
+
+    # fifth fallback - try to remove last lines
     data = {}
     for i in range(1, len(response_text_lines)):
         response_text_lines_tmp = '\n'.join(response_text_lines[:-i])
@@ -499,7 +648,7 @@ def set_custom_labels(variables, git_provider=None):
     if not get_settings().config.enable_custom_labels:
         return
 
-    labels = get_settings().custom_labels
+    labels = get_settings().get('custom_labels', {})
     if not labels:
         # set default labels
         labels = ['Bug fix', 'Tests', 'Bug fix with tests', 'Enhancement', 'Documentation', 'Other']
@@ -544,15 +693,25 @@ def get_user_labels(current_labels: List[str] = None):
 
 
 def get_max_tokens(model):
+    """
+    Get the maximum number of tokens allowed for a model.
+    logic:
+    (1) If the model is in './pr_assistant/algo/__init__.py', use the value from there.
+    (2) else, the user needs to define explicitly 'config.custom_model_max_tokens'
+
+    For both cases, we further limit the number of tokens to 'config.max_model_tokens' if it is set.
+    This aims to improve the algorithmic quality, as the AI model degrades in performance when the input is too long.
+    """
     settings = get_settings()
     if model in MAX_TOKENS:
         max_tokens_model = MAX_TOKENS[model]
+    elif settings.config.custom_model_max_tokens > 0:
+        max_tokens_model = settings.config.custom_model_max_tokens
     else:
-        raise Exception(f"MAX_TOKENS must be set for model {model} in ./pr_assistant/algo/__init__.py")
+        raise Exception(f"Ensure {model} is defined in MAX_TOKENS in ./pr_assistant/algo/__init__.py or set a positive value for it in config.custom_model_max_tokens")
 
-    if settings.config.max_model_tokens:
+    if settings.config.max_model_tokens and settings.config.max_model_tokens > 0:
         max_tokens_model = min(settings.config.max_model_tokens, max_tokens_model)
-        # get_logger().debug(f"limiting max tokens to {max_tokens_model}")
     return max_tokens_model
 
 
@@ -751,8 +910,8 @@ def show_relevant_configurations(relevant_section: str) -> str:
 
     markdown_text = ""
     markdown_text += "\n<hr>\n<details> <summary><strong>🛠️ Relevant configurations:</strong></summary> \n\n"
-    markdown_text +="<br>These are the relevant [configurations](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) for this tool:\n\n"
-    markdown_text += "**[config**]\n```yaml\n\n"
+    markdown_text +="<br>These are the relevant [configurations](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/configuration.toml) for this tool:\n\n"
+    markdown_text += f"**[config**]\n```yaml\n\n"
     for key, value in get_settings().config.items():
         if key in forbidden_keys:
             continue
@@ -766,3 +925,11 @@ def show_relevant_configurations(relevant_section: str) -> str:
     markdown_text += "\n```"
     markdown_text += "\n</details>\n"
     return markdown_text
+
+def is_value_no(value):
+    if not value:
+        return True
+    value_str = str(value).strip().lower()
+    if value_str == 'no' or value_str == 'none' or value_str == 'false':
+        return True
+    return False

@@ -23,6 +23,7 @@ Here are the results:
 | QWEN-1.5-32B                | 32             | 29                                           |
 |                             |                |                                              |
 | **CodeQwen1.5-7B**          | **7**          | **35.4**                                     |
+| Llama-3.1-8B-Instruct       | 8              | 35.2                                         |
 | Granite-8b-code-instruct    | 8              | 34.2                                         |
 | CodeLlama-7b-hf             | 7              | 31.8                                         |
 | Gemma-7B                    | 7              | 27.2                                         |
@@ -53,7 +54,7 @@ Here are the results:
 ### Training dataset
 
 Our training dataset comprises 25,000 pull requests, aggregated from permissive license repos. For each pull request, we generated responses for the three main tools of PR-Assistant:
-[Describe](https://khulnasoft.github.io/tools/describe/), [Review](https://khulnasoft.github.io/tools/improve/) and [Improve](https://khulnasoft.github.io/tools/improve/).
+[Describe](https://pr-assistant-docs.khulnasoft.com/tools/describe/), [Review](https://pr-assistant-docs.khulnasoft.com/tools/improve/) and [Improve](https://pr-assistant-docs.khulnasoft.com/tools/improve/).
 
 On the raw data collected, we employed various automatic and manual cleaning techniques to ensure the outputs were of the highest quality, and suitable for instruct-tuning.
 
@@ -61,9 +62,9 @@ Here are the prompts, and example outputs, used as input-output pairs to fine-tu
 
 | Tool     | Prompt                                                                                                     | Example output |
 |----------|------------------------------------------------------------------------------------------------------------|----------------|
-| Describe | [link](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_description_prompts.toml) | [link](https://github.com/khulnasoft/pr-assistant/pull/910#issue-2303989601)           |
-| Review   | [link](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_reviewer_prompts.toml) | [link](https://github.com/khulnasoft/pr-assistant/pull/910#issuecomment-2118761219)           |
-| Improve  | [link](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_code_suggestions_prompts.toml) | [link](https://github.com/khulnasoft/pr-assistant/pull/910#issuecomment-2118761309)           |
+| Describe | [link](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_description_prompts.toml) | [link](https://github.com/Khulnasoft/pr-assistant/pull/910#issue-2303989601)           |
+| Review   | [link](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_reviewer_prompts.toml) | [link](https://github.com/Khulnasoft/pr-assistant/pull/910#issuecomment-2118761219)           |
+| Improve  | [link](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_code_suggestions_prompts.toml) | [link](https://github.com/Khulnasoft/pr-assistant/pull/910#issuecomment-2118761309)           |
 
 ### Evaluation dataset
 
@@ -74,7 +75,7 @@ Here are the prompts, and example outputs, used as input-output pairs to fine-tu
 <br>
 
 We experimented with three model as judges: `gpt-4-turbo-2024-04-09`, `gpt-4o`, and `claude-3-opus-20240229`. All three produced similar results, with the same ranking order. This strengthens the validity of our testing protocol.
-The evaluation prompt can be found [here](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_evaluate_prompt_response.toml)
+The evaluation prompt can be found [here](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/pr_evaluate_prompt_response.toml)
 
 Here is an example of a judge model feedback:
 

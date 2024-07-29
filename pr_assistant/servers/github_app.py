@@ -48,8 +48,7 @@ async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Req
     installation_id = body.get("installation", {}).get("id")
     context["installation_id"] = installation_id
     context["settings"] = copy.deepcopy(global_settings)
-
-    context["git_provider"] = None
+    context["git_provider"] = {}
     background_tasks.add_task(handle_request, body, event=request.headers.get("X-GitHub-Event", None))
     return {}
 
@@ -131,19 +130,21 @@ async def handle_new_pr_opened(body: Dict[str, Any],
     title = body.get("pull_request", {}).get("title", "")
     get_settings().config.is_auto_command = True
 
-    # logic to ignore PRs with specific titles (e.g. "[Auto] ...")
-    ignore_pr_title_re = get_settings().get("GITHUB_APP.IGNORE_PR_TITLE", [])
-    if not isinstance(ignore_pr_title_re, list):
-        ignore_pr_title_re = [ignore_pr_title_re]
-    if ignore_pr_title_re and any(re.search(regex, title) for regex in ignore_pr_title_re):
-        get_logger().info(f"Ignoring PR with title '{title}' due to github_app.ignore_pr_title setting")
-        return {}
 
     pull_request, api_url = _check_pull_request_event(action, body, log_context)
     if not (pull_request and api_url):
         get_logger().info(f"Invalid PR event: {action=} {api_url=}")
         return {}
     if action in get_settings().github_app.handle_pr_actions:  # ['opened', 'reopened', 'ready_for_review']
+        # logic to ignore PRs with specific titles (e.g. "[Auto] ...")
+        apply_repo_settings(api_url)
+        ignore_pr_title_re = get_settings().get("GITHUB_APP.IGNORE_PR_TITLE", [])
+        if not isinstance(ignore_pr_title_re, list):
+            ignore_pr_title_re = [ignore_pr_title_re]
+        if ignore_pr_title_re and any(re.search(regex, title) for regex in ignore_pr_title_re):
+            get_logger().info(f"Ignoring PR with title '{title}' due to github_app.ignore_pr_title setting")
+            return {}
+
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
                 await _perform_auto_commands_github("pr_commands", agent, body, api_url, log_context)
         else:
@@ -202,10 +203,6 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
             get_logger().info(f"Finished waiting to process push trigger for {api_url=} - continue with flow")
 
     try:
-        if get_settings().github_app.push_trigger_wait_for_initial_review and not get_git_provider()(api_url,
-                                                                                                     incremental=IncrementalPR(True)).previous_review:
-            get_logger().info(f"Skipping incremental review because there was no initial review for {api_url=} yet")
-            return {}
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
                 get_logger().info(f"Performing incremental review for {api_url=} because of {event=} and {action=}")
                 await _perform_auto_commands_github("push_commands", agent, body, api_url, log_context)
@@ -273,19 +270,19 @@ async def handle_request(body: Dict[str, Any], event: str):
         # get_logger().debug(f'Request body', artifact=body, event=event) # added inside handle_checks
         pass
     # handle comments on PRs
-    if action == 'created':
-        get_logger().debug('Request body', artifact=body, event=event)
+    elif action == 'created':
+        get_logger().debug(f'Request body', artifact=body, event=event)
         await handle_comments_on_pr(body, event, sender, sender_id, action, log_context, agent)
     # handle new PRs
     elif event == 'pull_request' and action != 'synchronize' and action != 'closed':
-        get_logger().debug('Request body', artifact=body, event=event)
+        get_logger().debug(f'Request body', artifact=body, event=event)
         await handle_new_pr_opened(body, event, sender, sender_id, action, log_context, agent)
     elif event == "issue_comment" and 'edited' in action:
         pass # handle_checkbox_clicked
     # handle pull_request event with synchronize action - "push trigger" for new commits
     elif event == 'pull_request' and action == 'synchronize':
-        get_logger().debug('Request body', artifact=body, event=event)
-        await handle_push_trigger_for_new_commits(body, event, sender, sender_id, action, log_context, agent)
+        # get_logger().debug(f'Request body', artifact=body, event=event) # added inside handle_push_trigger_for_new_commits
+        await handle_push_trigger_for_new_commits(body, event, sender,sender_id,  action, log_context, agent)
     elif event == 'pull_request' and action == 'closed':
         if get_settings().get("CONFIG.ANALYTICS_FOLDER", ""):
             handle_closed_pr(body, event, action, log_context)
@@ -332,8 +329,7 @@ async def _perform_auto_commands_github(commands_conf: str, agent: PRAssistant, 
     apply_repo_settings(api_url)
     commands = get_settings().get(f"github_app.{commands_conf}")
     if not commands:
-        with get_logger().contextualize(**log_context):
-            get_logger().info("New PR, but no auto commands configured")
+        get_logger().info(f"New PR, but no auto commands configured")
         return
     for command in commands:
         split_command = command.split(" ")
@@ -353,7 +349,7 @@ async def root():
 if get_settings().github_app.override_deployment_type:
     # Override the deployment type to app
     get_settings().set("GITHUB.DEPLOYMENT_TYPE", "app")
-get_settings().set("CONFIG.PUBLISH_OUTPUT_PROGRESS", False)
+# get_settings().set("CONFIG.PUBLISH_OUTPUT_PROGRESS", False)
 middleware = [Middleware(RawContextMiddleware)]
 app = FastAPI(middleware=middleware)
 app.include_router(router)
@@ -361,7 +357,7 @@ app.include_router(router)
 
 def start():
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
-    
+
 
 if __name__ == '__main__':
     start()

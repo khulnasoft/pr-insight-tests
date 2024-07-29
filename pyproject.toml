@@ -4,12 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pr-assistant"
-version = "0.2.3"
+version = "0.2.2"
 
-authors = [{name= "KhulnaSoft", email = "info@khulnasoft.com"}]
+authors = [{name= "KhulnaSoft", email = "tal.r@khulnasoft.com"}]
 
 maintainers = [
-  {name = "KhulnaSoft DevOps", email = "dev@khulnasoft.com"},
+  {name = "Tal Ridnik", email = "tal.r@khulnasoft.com"},
+  {name = "Ori Kotek", email = "ori.k@khulnasoft.com"},
+  {name = "Hussam Lawen", email = "hussam.l@khulnasoft.com"},
 ]
 
 description = "KhulnaSoft PR-Assistant aims to help efficiently review and handle pull requests, by providing AI feedbacks and suggestions."
@@ -29,8 +31,8 @@ dynamic = ["dependencies"]
 dependencies = {file = ["requirements.txt"]}
 
 [project.urls]
-"Homepage" = "https://github.com/khulnasoft/pr-assistant"
-"Documentation" = "https://khulnasoft.github.io/"
+"Homepage" = "https://github.com/Khulnasoft/pr-assistant"
+"Documentation" = "https://pr-assistant-docs.khulnasoft.com/"
 
 [tool.setuptools]
 include-package-data = true

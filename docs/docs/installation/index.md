@@ -15,8 +15,7 @@ There are several ways to use self-hosted PR-Assistant:
 - [Azure DevOps](./azure.md)
 
 ## PR-Assistant Pro 💎
-PR-Assistant Pro, an app for GitHub\GitLab\BitBucket hosted by KhulnaSoft, is also available. 
+PR-Assistant Pro, an app hosted by KhulnaSoft for GitHub\GitLab\BitBucket, is also available. 
 <br>
-With PR-Assistant Pro Installation is as simple as signing up and adding the PR-Assistant app to your relevant repo.
-<br>
+With PR-Assistant Pro, installation is as simple as signing up and adding the PR-Assistant app to your relevant repo. 
 See [here](./pr_assistant_pro.md) for more details.

@@ -22,7 +22,7 @@ Note that in addition to the dedicated tool `generate_labels`, the custom labels
 There are 3 ways to enable custom labels:
 
 #### 1. CLI (local configuration file)
-When working from CLI, you need to apply the [configuration changes](#configuration-options) to the [custom_labels file](https://github.com/khulnasoft/pr-assistant/blob/main/pr_assistant/settings/custom_labels.toml):
+When working from CLI, you need to apply the [configuration changes](#configuration-options) to the [custom_labels file](https://github.com/Khulnasoft/pr-assistant/blob/main/pr_assistant/settings/custom_labels.toml):
 
 #### 2. Repo configuration file
 To enable custom labels, you need to apply the [configuration changes](#configuration-options) to the local `.pr_assistant.toml` file in you repository.

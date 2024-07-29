@@ -42,7 +42,7 @@ Go to the marketplace and install the extension:
 
 ## Pre-requisites
 
-The PR-Assistant Chrome extension will work on any repo where you have previously [installed PR-Assistant](https://khulnasoft.github.io/installation/).
+The PR-Assistant Chrome extension will work on any repo where you have previously [installed PR-Assistant](https://pr-assistant-docs.khulnasoft.com/installation/).
 
 ## Data privacy and security
 

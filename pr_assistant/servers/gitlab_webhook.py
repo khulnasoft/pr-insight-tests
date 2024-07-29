@@ -145,8 +145,8 @@ async def gitlab_webhook(background_tasks: BackgroundTasks, request: Request):
 
                 # we need first to apply_repo_settings
                 apply_repo_settings(url)
-                commands_on_push = get_settings().get("gitlab.push_commands", {})
-                handle_push_trigger = get_settings().get("gitlab.handle_push_trigger", False)
+                commands_on_push = get_settings().get(f"gitlab.push_commands", {})
+                handle_push_trigger = get_settings().get(f"gitlab.handle_push_trigger", False)
                 if not commands_on_push or not handle_push_trigger:
                     get_logger().info("Push event, but no push commands found or push trigger is disabled")
                     return JSONResponse(status_code=status.HTTP_200_OK,

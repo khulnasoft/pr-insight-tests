@@ -8,8 +8,8 @@ from pr_assistant.algo.ai_handlers.base_ai_handler import BaseAiHandler
 from pr_assistant.algo.ai_handlers.litellm_ai_handler import LiteLLMAIHandler
 from pr_assistant.algo.pr_processing import get_pr_diff, retry_with_fallback_models
 from pr_assistant.algo.token_handler import TokenHandler
-from pr_assistant.algo.utils import convert_to_markdown, github_action_output, load_yaml, ModelType, \
-    show_relevant_configurations
+from pr_assistant.algo.utils import github_action_output, load_yaml, ModelType, \
+    show_relevant_configurations, convert_to_markdown_v2, PRReviewHeader
 from pr_assistant.config_loader import get_settings
 from pr_assistant.git_providers import get_git_provider, get_git_provider_with_context
 from pr_assistant.git_providers.git_provider import IncrementalPR, get_main_pr_language
@@ -75,6 +75,7 @@ class PRReviewer:
             "commit_messages_str": self.git_provider.get_commit_messages(),
             "custom_labels": "",
             "enable_custom_labels": get_settings().config.enable_custom_labels,
+            "extra_issue_links": get_settings().pr_reviewer.extra_issue_links,
         }
 
         self.token_handler = TokenHandler(
@@ -127,14 +128,14 @@ class PRReviewer:
                 return None
 
             pr_review = self._prepare_pr_review()
-            get_logger().debug("PR output", artifact=pr_review)
+            get_logger().debug(f"PR output", artifact=pr_review)
 
             if get_settings().config.publish_output:
                 # publish the review
                 if get_settings().pr_reviewer.persistent_comment and not self.incremental.is_incremental:
                     final_update_message = get_settings().pr_reviewer.final_update_message
                     self.git_provider.publish_persistent_comment(pr_review,
-                                                                 initial_header="## PR Reviewer Guide 🔍",
+                                                                 initial_header=f"{PRReviewHeader.REGULAR.value} 🔍",
                                                                  update_header=True,
                                                                  final_update_message=final_update_message, )
                 else:
@@ -147,12 +148,17 @@ class PRReviewer:
             get_logger().error(f"Failed to review PR: {e}")
 
     async def _prepare_prediction(self, model: str) -> None:
-        self.patches_diff = get_pr_diff(self.git_provider, self.token_handler, model)
+        self.patches_diff = get_pr_diff(self.git_provider,
+                                        self.token_handler,
+                                        model,
+                                        add_line_numbers_to_hunks=True,
+                                        disable_extra_lines=True,)
+
         if self.patches_diff:
-            get_logger().debug("PR diff", diff=self.patches_diff)
+            get_logger().debug(f"PR diff", diff=self.patches_diff)
             self.prediction = await self._get_prediction(model)
         else:
-            get_logger().error("Error getting PR diff")
+            get_logger().error(f"Error getting PR diff")
             self.prediction = None
 
     async def _get_prediction(self, model: str) -> str:
@@ -174,7 +180,7 @@ class PRReviewer:
 
         response, finish_reason = await self.ai_handler.chat_completion(
             model=model,
-            temperature=0.2,
+            temperature=get_settings().config.temperature,
             system=system_prompt,
             user=user_prompt
         )
@@ -186,9 +192,12 @@ class PRReviewer:
         Prepare the PR review by processing the AI prediction and generating a markdown-formatted text that summarizes
         the feedback.
         """
+        first_key = 'review'
+        last_key = 'security_concerns'
         data = load_yaml(self.prediction.strip(),
                          keys_fix_yaml=["estimated_effort_to_review_[1-5]:", "security_concerns:", "key_issues_to_review:",
-                                        "relevant_file:", "relevant_line:", "suggestion:"])
+                                        "relevant_file:", "relevant_line:", "suggestion:"],
+                         first_key=first_key, last_key=last_key)
         github_action_output(data, 'review')
 
         # move data['review'] 'key_issues_to_review' key to the end of the dictionary
@@ -230,8 +239,8 @@ class PRReviewer:
                               f"{self.git_provider.incremental.first_new_commit_sha}"
             incremental_review_markdown_text = f"Starting from commit {last_commit_url}"
 
-        markdown_text = convert_to_markdown(data, self.git_provider.is_supported("gfm_markdown"),
-                                            incremental_review_markdown_text)
+        markdown_text = convert_to_markdown_v2(data, self.git_provider.is_supported("gfm_markdown"),
+                                            incremental_review_markdown_text, git_provider=self.git_provider)
 
         # Add help text if gfm_markdown is supported
         if self.git_provider.is_supported("gfm_markdown") and get_settings().pr_reviewer.enable_help_text:
@@ -258,9 +267,12 @@ class PRReviewer:
         if get_settings().pr_reviewer.num_code_suggestions == 0:
             return
 
+        first_key = 'review'
+        last_key = 'security_concerns'
         data = load_yaml(self.prediction.strip(),
                          keys_fix_yaml=["estimated_effort_to_review_[1-5]:", "security_concerns:", "key_issues_to_review:",
-                                        "relevant_file:", "relevant_line:", "suggestion:"])
+                                        "relevant_file:", "relevant_line:", "suggestion:"],
+                         first_key=first_key, last_key=last_key)
         comments: List[str] = []
         for suggestion in data.get('code_feedback', []):
             relevant_file = suggestion.get('relevant_file', '').strip()
@@ -426,4 +438,4 @@ class PRReviewer:
         else:
             get_logger().info("Auto-approval option is disabled")
             self.git_provider.publish_comment("Auto-approval option for PR-Assistant is disabled. "
-                                              "You can enable it via a [configuration file](https://github.com/khulnasoft/pr-assistant/blob/main/docs/REVIEW.md#auto-approval-1)")
+                                              "You can enable it via a [configuration file](https://github.com/Khulnasoft/pr-assistant/blob/main/docs/REVIEW.md#auto-approval-1)")

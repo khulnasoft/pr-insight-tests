@@ -27,7 +27,7 @@ If you want to edit [configurations](#configuration-options), add the relevant o
 
 ### Automatic triggering
 
-To run the `review` automatically when a PR is opened, define in a [configuration file](https://khulnasoft.github.io/usage-guide/configuration_options/#wiki-configuration-file):
+To run the `review` automatically when a PR is opened, define in a [configuration file](https://pr-assistant-docs.khulnasoft.com/usage-guide/configuration_options/#wiki-configuration-file):
 ```
 [github_app]
 pr_commands = [
@@ -43,15 +43,23 @@ num_code_suggestions = ...
 - The `pr_commands` lists commands that will be executed automatically when a PR is opened.
 - The `[pr_reviewer]` section contains the configurations for the `review` tool you want to edit (if any).
 
-### Incremental Mode
-Incremental review only considers changes since the last PR-Assistant review. This can be useful when working on the PR in an iterative manner, and you want to focus on the changes since the last review instead of reviewing the entire PR again.
-For invoking the incremental mode, the following command can be used:
-```
-/review -i
-```
-Note that the incremental mode is only available for GitHub.
+[//]: # ()
+[//]: # (### Incremental Mode)
 
-![incremental review](https://khulnasoft.com/images/pr_assistant/incremental_review_2.png){width=512}
+[//]: # (Incremental review only considers changes since the last PR-Assistant review. This can be useful when working on the PR in an iterative manner, and you want to focus on the changes since the last review instead of reviewing the entire PR again.)
+
+[//]: # (For invoking the incremental mode, the following command can be used:)
+
+[//]: # (```)
+
+[//]: # (/review -i)
+
+[//]: # (```)
+
+[//]: # (Note that the incremental mode is only available for GitHub.)
+
+[//]: # ()
+[//]: # (![incremental review]&#40;https://khulnasoft.com/images/pr_assistant/incremental_review_2.png&#41;{width=512})
 
 [//]: # (### PR Reflection)
 
@@ -198,7 +206,7 @@ If enabled, the `review` tool can approve a PR when a specific comment, `/review
 
     The `review` tool can auto-generate two specific types of labels for a PR:
     
-    - a `possible security issue` label that detects if a possible [security issue](https://github.com/khulnasoft/pr-assistant/blob/tr/user_description/pr_assistant/settings/pr_reviewer_prompts.toml#L136) exists in the PR code (`enable_review_labels_security` flag)
+    - a `possible security issue` label that detects if a possible [security issue](https://github.com/Khulnasoft/pr-assistant/blob/tr/user_description/pr_assistant/settings/pr_reviewer_prompts.toml#L136) exists in the PR code (`enable_review_labels_security` flag)
     - a `Review effort [1-5]: x` label, where x is the estimated effort to review the PR (`enable_review_labels_effort` flag)
     
     Both modes are useful, and we recommended to enable them.
