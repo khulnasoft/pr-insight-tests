@@ -39,11 +39,11 @@ jobs:
           tar xvf pr_assistant*.tar.gz
       - name: Install test dependencies
         run: |
-          cd dist/pr-assistant*/
+          cd dist/pr_assistant*/
           pip install -r requirements-dev.txt
       - name: Run source distribution tests
         run: |
-          cd dist/pr-assistant*/
+          cd dist/pr_assistant*/
           bash scripts/test.sh
       - name: Build wheel distribution
         run: |
