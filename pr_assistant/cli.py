@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 
-from pr_assistant.agent.pr_assistant import PRAssistant, commands
+from pr_assistant.assistant.pr_assistant import PRAssistant, commands
 from pr_assistant.config_loader import get_settings
 from pr_assistant.log import setup_logger
 

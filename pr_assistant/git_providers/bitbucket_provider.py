@@ -30,6 +30,7 @@ class BitbucketProvider(GitProvider):
         s.headers["Content-Type"] = "application/json"
         self.headers = s.headers
         self.bitbucket_client = Cloud(session=s)
+        self.max_comment_length = 31000
         self.workspace_slug = None
         self.repo_slug = None
         self.repo = None
@@ -108,8 +109,12 @@ class BitbucketProvider(GitProvider):
                 get_logger().error(f"Failed to publish code suggestion, error: {e}")
             return False
 
+    def publish_file_comments(self, file_comments: list) -> bool:
+        pass
+
     def is_supported(self, capability: str) -> bool:
-        if capability in ['get_issue_comments', 'publish_inline_comments', 'get_labels', 'gfm_markdown']:
+        if capability in ['get_issue_comments', 'publish_inline_comments', 'get_labels', 'gfm_markdown',
+                            'publish_file_comments']:
             return False
         return True
 
@@ -137,9 +142,32 @@ class BitbucketProvider(GitProvider):
             except Exception as e:
                 pass
 
-        diff_split = [
-            "diff --git%s" % x for x in self.pr.diff().split("diff --git") if x.strip()
-        ]
+        # get the pr patches
+        pr_patch = self.pr.diff()
+        diff_split = ["diff --git" + x for x in pr_patch.split("diff --git") if x.strip()]
+        if len(diff_split) != len(diffs):
+            get_logger().error(f"Error - failed to split the diff into {len(diffs)} parts")
+            return []
+        # bitbucket diff has a header for each file, we need to remove it:
+        # "diff --git filename
+        # new file mode 100644 (optional)
+        #  index caa56f0..61528d7 100644
+        #   --- a/pr_assistant/cli_pip.py
+        #  +++ b/pr_assistant/cli_pip.py
+        #   @@ -... @@"
+        for i, _ in enumerate(diff_split):
+            diff_split_lines = diff_split[i].splitlines()
+            if (len(diff_split_lines) >= 6) and \
+                    ((diff_split_lines[2].startswith("---") and
+                      diff_split_lines[3].startswith("+++") and
+                      diff_split_lines[4].startswith("@@")) or
+                     (diff_split_lines[3].startswith("---") and  # new or deleted file
+                      diff_split_lines[4].startswith("+++") and
+                      diff_split_lines[5].startswith("@@"))):
+                diff_split[i] = "\n".join(diff_split_lines[4:])
+            else:
+                get_logger().error(f"Error - failed to remove the bitbucket header from diff {i}")
+                break
 
         invalid_files_names = []
         diff_files = []
@@ -148,10 +176,20 @@ class BitbucketProvider(GitProvider):
                 invalid_files_names.append(diff.new.path)
                 continue
 
-            original_file_content_str = self._get_pr_file_content(
-                diff.old.get_data("links")
-            )
-            new_file_content_str = self._get_pr_file_content(diff.new.get_data("links"))
+            try:
+                if diff.old.get_data("links"):
+                    original_file_content_str = self._get_pr_file_content(diff.old.get_data("links")['self']['href'])
+                else:
+                    original_file_content_str = ""
+                if diff.new.get_data("links"):
+                    new_file_content_str = self._get_pr_file_content(diff.new.get_data("links")['self']['href'])
+                else:
+                    new_file_content_str = ""
+            except Exception as e:
+                get_logger().exception(f"Error - bitbucket failed to get file content, error: {e}")
+                original_file_content_str = ""
+                new_file_content_str = ""
+
             file_patch_canonic_structure = FilePatchInfo(
                 original_file_content_str,
                 new_file_content_str,
@@ -170,8 +208,7 @@ class BitbucketProvider(GitProvider):
             diff_files.append(file_patch_canonic_structure)
 
         if invalid_files_names:
-            get_logger().info(f"Invalid file names: {invalid_files_names}")
-
+            get_logger().info(f"Disregarding files with invalid extensions:\n{invalid_files_names}")
 
         self.diff_files = diff_files
         return diff_files
@@ -211,6 +248,7 @@ class BitbucketProvider(GitProvider):
         self.publish_comment(pr_comment)
 
     def publish_comment(self, pr_comment: str, is_temporary: bool = False):
+        pr_comment = self.limit_output_characters(pr_comment, self.max_comment_length)
         comment = self.pr.comment(pr_comment)
         if is_temporary:
             self.temp_comments.append(comment["id"])
@@ -218,6 +256,7 @@ class BitbucketProvider(GitProvider):
 
     def edit_comment(self, comment, body: str):
         try:
+            body = self.limit_output_characters(body, self.max_comment_length)
             comment.update(body)
         except Exception as e:
             get_logger().exception(f"Failed to update comment, error: {e}")
@@ -237,6 +276,7 @@ class BitbucketProvider(GitProvider):
 
     # function to create_inline_comment
     def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str, absolute_position: int = None):
+        body = self.limit_output_characters(body, self.max_comment_length)
         position, absolute_position = find_line_number_of_relevant_line_in_file(self.get_diff_files(),
                                                                             relevant_file.strip('`'),
                                                                             relevant_line_in_file, absolute_position)
@@ -251,6 +291,7 @@ class BitbucketProvider(GitProvider):
 
 
     def publish_inline_comment(self, comment: str, from_line: int, file: str):
+        comment = self.limit_output_characters(comment, self.max_comment_length)
         payload = json.dumps( {
             "content": {
                 "raw": comment,
@@ -313,6 +354,9 @@ class BitbucketProvider(GitProvider):
 
     def get_pr_branch(self):
         return self.pr.source_branch
+
+    def get_pr_owner_id(self) -> str | None:
+        return self.workspace_slug
 
     def get_pr_description_full(self):
         return self.pr.description
@@ -400,7 +444,14 @@ class BitbucketProvider(GitProvider):
             get_logger().exception(f"Failed to create empty file {file_path} in branch {branch}")
 
     def _get_pr_file_content(self, remote_link: str):
-        return ""
+        try:
+            response = requests.request("GET", remote_link, headers=self.headers)
+            if response.status_code == 404:  # not found
+                return ""
+            contents = response.text
+            return contents
+        except Exception:
+            return ""
 
     def get_commit_messages(self):
         return ""  # not implemented yet

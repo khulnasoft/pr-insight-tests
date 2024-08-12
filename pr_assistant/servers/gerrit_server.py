@@ -9,7 +9,7 @@ from starlette.middleware import Middleware
 from starlette_context import context
 from starlette_context.middleware import RawContextMiddleware
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.config_loader import get_settings, global_settings
 from pr_assistant.log import get_logger, setup_logger
 

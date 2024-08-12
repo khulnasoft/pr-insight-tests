@@ -11,7 +11,7 @@ from starlette.middleware import Middleware
 from starlette_context import context
 from starlette_context.middleware import RawContextMiddleware
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.algo.utils import update_settings_from_args
 from pr_assistant.config_loader import get_settings, global_settings
 from pr_assistant.git_providers.utils import apply_repo_settings
@@ -51,12 +51,13 @@ async def handle_request(api_url: str, body: str, log_context: dict, sender_id: 
     log_context["action"] = body
     log_context["event"] = "pull_request" if body == "/review" else "comment"
     log_context["api_url"] = api_url
+    log_context["app_name"] = get_settings().get("CONFIG.APP_NAME", "Unknown")
 
     with get_logger().contextualize(**log_context):
         await PRAssistant().handle_request(api_url, body)
 
 
-async def _perform_commands_gitlab(commands_conf: str, agent: PRAssistant, api_url: str,
+async def _perform_commands_gitlab(commands_conf: str, assistant: PRAssistant, api_url: str,
                                    log_context: dict):
     apply_repo_settings(api_url)
     commands = get_settings().get(f"gitlab.{commands_conf}", {})
@@ -69,7 +70,7 @@ async def _perform_commands_gitlab(commands_conf: str, agent: PRAssistant, api_u
             new_command = ' '.join([command] + other_args)
             get_logger().info(f"Performing command: {new_command}")
             with get_logger().contextualize(**log_context):
-                await agent.handle_request(api_url, new_command)
+                await assistant.handle_request(api_url, new_command)
         except Exception as e:
             get_logger().error(f"Failed to perform command {command}: {e}")
 

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import aiohttp
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.config_loader import get_settings
 from pr_assistant.git_providers import get_git_provider
 from pr_assistant.log import LoggingFormat, get_logger, setup_logger
@@ -33,7 +33,7 @@ async def polling_loop():
     last_modified = [None]
     git_provider = get_git_provider()()
     user_id = git_provider.get_user_id()
-    agent = PRAssistant()
+    assistant = PRAssistant()
     get_settings().set("CONFIG.PUBLISH_OUTPUT_PROGRESS", False)
 
     try:
@@ -99,7 +99,7 @@ async def polling_loop():
                                             rest_of_comment = comment_body.split(user_tag)[1].strip()
                                             comment_id = comment['id']
                                             git_provider.set_pr(pr_url)
-                                            success = await agent.handle_request(pr_url, rest_of_comment,
+                                            success = await assistant.handle_request(pr_url, rest_of_comment,
                                                                                  notify=lambda: git_provider.add_eyes_reaction(comment_id))  # noqa E501
                                             if not success:
                                                 git_provider.set_pr(pr_url)
