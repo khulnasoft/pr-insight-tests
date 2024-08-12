@@ -6,7 +6,7 @@ import uuid
 from typing import Any, Dict, Tuple
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
+from readyapi import APIRouter, ReadyAPI, HTTPException, Request, Response
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette_context import context
@@ -351,7 +351,7 @@ if get_settings().github_app.override_deployment_type:
     get_settings().set("GITHUB.DEPLOYMENT_TYPE", "app")
 # get_settings().set("CONFIG.PUBLISH_OUTPUT_PROGRESS", False)
 middleware = [Middleware(RawContextMiddleware)]
-app = FastAPI(middleware=middleware)
+app = ReadyAPI(middleware=middleware)
 app.include_router(router)
 
 

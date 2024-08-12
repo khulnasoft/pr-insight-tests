@@ -9,9 +9,9 @@ import secrets
 from urllib.parse import unquote
 
 import uvicorn
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi.encoders import jsonable_encoder
+from readyapi import APIRouter, Depends, ReadyAPI, HTTPException
+from readyapi.security import HTTPBasic, HTTPBasicCredentials
+from readyapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
@@ -24,8 +24,8 @@ from pr_assistant.algo.utils import update_settings_from_args
 from pr_assistant.config_loader import get_settings
 from pr_assistant.git_providers.utils import apply_repo_settings
 from pr_assistant.log import get_logger
-from fastapi import Request, Depends
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from readyapi import Request, Depends
+from readyapi.security import HTTPBasic, HTTPBasicCredentials
 from pr_assistant.log import LoggingFormat, get_logger, setup_logger
 
 setup_logger(fmt=LoggingFormat.JSON, level="DEBUG")
@@ -139,7 +139,7 @@ async def root():
     return {"status": "ok"}
 
 def start():
-    app = FastAPI(middleware=[Middleware(RawContextMiddleware)])
+    app = ReadyAPI(middleware=[Middleware(RawContextMiddleware)])
     app.include_router(router)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 

@@ -8,7 +8,7 @@ import time
 import jwt
 import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request, Response
+from readyapi import APIRouter, ReadyAPI, Request, Response
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
@@ -201,7 +201,7 @@ def start():
     get_settings().set("CONFIG.GIT_PROVIDER", "bitbucket")
     get_settings().set("PR_DESCRIPTION.PUBLISH_DESCRIPTION_AS_COMMENT", True)
     middleware = [Middleware(RawContextMiddleware)]
-    app = FastAPI(middleware=middleware)
+    app = ReadyAPI(middleware=middleware)
     app.include_router(router)
 
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "3000")))

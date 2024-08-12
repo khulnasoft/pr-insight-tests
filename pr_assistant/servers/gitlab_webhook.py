@@ -3,9 +3,9 @@ import json
 from datetime import datetime
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from readyapi import APIRouter, ReadyAPI, Request, status
+from readyapi.encoders import jsonable_encoder
+from readyapi.responses import JSONResponse
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette_context import context
@@ -193,7 +193,7 @@ if not gitlab_url:
     raise ValueError("GITLAB.URL is not set")
 get_settings().config.git_provider = "gitlab"
 middleware = [Middleware(RawContextMiddleware)]
-app = FastAPI(middleware=middleware)
+app = ReadyAPI(middleware=middleware)
 app.include_router(router)
 
 
