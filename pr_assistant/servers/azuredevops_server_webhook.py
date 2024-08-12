@@ -9,9 +9,9 @@ import secrets
 from urllib.parse import unquote
 
 import uvicorn
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi.encoders import jsonable_encoder
+from readyapi import APIRouter, Depends, ReadyAPI, HTTPException
+from readyapi.security import HTTPBasic, HTTPBasicCredentials
+from readyapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
@@ -19,13 +19,13 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette_context.middleware import RawContextMiddleware
 
-from pr_assistant.agent.pr_assistant import PRAssistant, command2class
+from pr_assistant.assistant.pr_assistant import PRAssistant, command2class
 from pr_assistant.algo.utils import update_settings_from_args
 from pr_assistant.config_loader import get_settings
 from pr_assistant.git_providers.utils import apply_repo_settings
 from pr_assistant.log import get_logger
-from fastapi import Request, Depends
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from readyapi import Request, Depends
+from readyapi.security import HTTPBasic, HTTPBasicCredentials
 from pr_assistant.log import LoggingFormat, get_logger, setup_logger
 
 setup_logger(fmt=LoggingFormat.JSON, level="DEBUG")
@@ -65,7 +65,7 @@ def authorize(credentials: HTTPBasicCredentials = Depends(security)):
             )
 
 
-async def _perform_commands_azure(commands_conf: str, agent: PRAssistant, api_url: str, log_context: dict):
+async def _perform_commands_azure(commands_conf: str, assistant: PRAssistant, api_url: str, log_context: dict):
     apply_repo_settings(api_url)
     commands = get_settings().get(f"azure_devops_server.{commands_conf}")
     for command in commands:
@@ -77,7 +77,7 @@ async def _perform_commands_azure(commands_conf: str, agent: PRAssistant, api_ur
             new_command = ' '.join([command] + other_args)
             get_logger().info(f"Performing command: {new_command}")
             with get_logger().contextualize(**log_context):
-                await agent.handle_request(api_url, new_command)
+                await assistant.handle_request(api_url, new_command)
         except Exception as e:
             get_logger().error(f"Failed to perform command {command}: {e}")
 
@@ -139,7 +139,7 @@ async def root():
     return {"status": "ok"}
 
 def start():
-    app = FastAPI(middleware=[Middleware(RawContextMiddleware)])
+    app = ReadyAPI(middleware=[Middleware(RawContextMiddleware)])
     app.include_router(router)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 

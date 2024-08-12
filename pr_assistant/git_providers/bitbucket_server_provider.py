@@ -1,4 +1,3 @@
-import json
 from typing import Optional, Tuple
 from urllib.parse import quote_plus, urlparse
 
@@ -81,6 +80,8 @@ class BitbucketServerProvider(GitProvider):
                 continue
 
             if relevant_lines_end > relevant_lines_start:
+                # Bitbucket does not support multi-line suggestions so use a code block instead - https://jira.atlassian.com/browse/BSERV-4553
+                body = body.replace("```suggestion", "```")
                 post_parameters = {
                     "body": body,
                     "path": relevant_file,
@@ -124,7 +125,7 @@ class BitbucketServerProvider(GitProvider):
                                                                      self.repo_slug,
                                                                      path,
                                                                      commit_id)
-        except requests.HTTPError as e:
+        except HTTPError as e:
             get_logger().debug(f"File {path} not found at commit id: {commit_id}")
         return file_content
 

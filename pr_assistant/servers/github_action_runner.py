@@ -3,7 +3,7 @@ import json
 import os
 from typing import Union
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.config_loader import get_settings
 from pr_assistant.git_providers import get_git_provider
 from pr_assistant.git_providers.utils import apply_repo_settings

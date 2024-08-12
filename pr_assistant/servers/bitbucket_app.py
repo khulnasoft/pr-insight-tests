@@ -8,14 +8,14 @@ import time
 import jwt
 import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request, Response
+from readyapi import APIRouter, ReadyAPI, Request, Response
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
 from starlette_context import context
 from starlette_context.middleware import RawContextMiddleware
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.algo.utils import update_settings_from_args
 from pr_assistant.config_loader import get_settings, global_settings
 from pr_assistant.git_providers.utils import apply_repo_settings
@@ -74,7 +74,7 @@ async def handle_manifest(request: Request, response: Response):
     return JSONResponse(manifest_obj)
 
 
-async def _perform_commands_bitbucket(commands_conf: str, agent: PRAssistant, api_url: str, log_context: dict):
+async def _perform_commands_bitbucket(commands_conf: str, assistant: PRAssistant, api_url: str, log_context: dict):
     apply_repo_settings(api_url)
     commands = get_settings().get(f"bitbucket_app.{commands_conf}", {})
     for command in commands:
@@ -86,14 +86,15 @@ async def _perform_commands_bitbucket(commands_conf: str, agent: PRAssistant, ap
             new_command = ' '.join([command] + other_args)
             get_logger().info(f"Performing command: {new_command}")
             with get_logger().contextualize(**log_context):
-                await agent.handle_request(api_url, new_command)
+                await assistant.handle_request(api_url, new_command)
         except Exception as e:
             get_logger().error(f"Failed to perform command {command}: {e}")
 
 
 @router.post("/webhook")
 async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Request):
-    log_context = {"server_type": "bitbucket_app"}
+    app_name = get_settings().get("CONFIG.APP_NAME", "Unknown")
+    log_context = {"server_type": "bitbucket_app", "app_name": app_name}
     get_logger().debug(request.headers)
     jwt_header = request.headers.get("authorization", None)
     if jwt_header:
@@ -128,7 +129,7 @@ async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Req
             context['bitbucket_bearer_token'] = bearer_token
             context["settings"] = copy.deepcopy(global_settings)
             event = data["event"]
-            agent = PRAssistant()
+            assistant = PRAssistant()
             if event == "pullrequest:created":
                 pr_url = data["data"]["pullrequest"]["links"]["html"]["href"]
                 log_context["api_url"] = pr_url
@@ -158,7 +159,7 @@ async def handle_github_webhooks(background_tasks: BackgroundTasks, request: Req
                 with get_logger().contextualize(**log_context):
                     if get_identity_provider().verify_eligibility("bitbucket",
                                                                      sender_id, pr_url) is not Eligibility.NOT_ELIGIBLE:
-                        await agent.handle_request(pr_url, comment_body)
+                        await assistant.handle_request(pr_url, comment_body)
         except Exception as e:
             get_logger().error(f"Failed to handle webhook: {e}")
     background_tasks.add_task(inner)
@@ -200,7 +201,7 @@ def start():
     get_settings().set("CONFIG.GIT_PROVIDER", "bitbucket")
     get_settings().set("PR_DESCRIPTION.PUBLISH_DESCRIPTION_AS_COMMENT", True)
     middleware = [Middleware(RawContextMiddleware)]
-    app = FastAPI(middleware=middleware)
+    app = ReadyAPI(middleware=middleware)
     app.include_router(router)
 
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "3000")))

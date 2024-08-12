@@ -3,13 +3,13 @@ from enum import Enum
 from json import JSONDecodeError
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, HTTPException
+from readyapi import APIRouter, ReadyAPI, HTTPException
 from pydantic import BaseModel
 from starlette.middleware import Middleware
 from starlette_context import context
 from starlette_context.middleware import RawContextMiddleware
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.config_loader import get_settings, global_settings
 from pr_assistant.log import get_logger, setup_logger
 
@@ -67,7 +67,7 @@ def start():
     # to prevent adding help messages with the output
     get_settings().set("CONFIG.CLI_MODE", True)
     middleware = [Middleware(RawContextMiddleware)]
-    app = FastAPI(middleware=middleware)
+    app = ReadyAPI(middleware=middleware)
     app.include_router(router)
 
     uvicorn.run(app, host="0.0.0.0", port=3000)

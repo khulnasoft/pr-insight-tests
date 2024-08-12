@@ -5,7 +5,7 @@ from typing import Optional
 from dynaconf import Dynaconf
 from starlette_context import context
 
-PR_ASSISTANT_TOML_KEY = 'pr-assistant'
+PR_AGENT_TOML_KEY = 'pr-assistant'
 
 current_dir = dirname(abspath(__file__))
 global_settings = Dynaconf(
@@ -77,4 +77,4 @@ def _find_pyproject() -> Optional[Path]:
 
 pyproject_path = _find_pyproject()
 if pyproject_path is not None:
-    get_settings().load_file(pyproject_path, env=f'tool.{PR_ASSISTANT_TOML_KEY}')
+    get_settings().load_file(pyproject_path, env=f'tool.{PR_AGENT_TOML_KEY}')

@@ -100,7 +100,7 @@ class PRCodeSuggestions:
                 data = {"code_suggestions": []}
 
             if data is None or 'code_suggestions' not in data or not data['code_suggestions']:
-                get_logger().error('No code suggestions found for the PR.')
+                get_logger().warning('No code suggestions found for the PR.')
                 pr_body = "## PR Code Suggestions ✨\n\nNo code suggestions found for the PR."
                 get_logger().debug(f"PR output", artifact=pr_body)
                 if self.progress_response:
@@ -286,7 +286,7 @@ class PRCodeSuggestions:
                                         self.token_handler,
                                         model,
                                         add_line_numbers_to_hunks=True,
-                                        disable_extra_lines=True)
+                                        disable_extra_lines=False)
 
         if self.patches_diff:
             get_logger().debug(f"PR diff", artifact=self.patches_diff)
@@ -656,6 +656,11 @@ class PRCodeSuggestions:
                     else:
                         pr_body += f"""<tr><td>\n\n"""
                     suggestion_summary = suggestion['one_sentence_summary'].strip().rstrip('.')
+                    if "'<" in suggestion_summary and ">'" in suggestion_summary:
+                        # escape the '<' and '>' characters, otherwise they are interpreted as html tags
+                        get_logger().info(f"Escaped suggestion summary: {suggestion_summary}")
+                        suggestion_summary = suggestion_summary.replace("'<", "`<")
+                        suggestion_summary = suggestion_summary.replace(">'", ">`")
                     if '`' in suggestion_summary:
                         suggestion_summary = replace_code_tags(suggestion_summary)
 

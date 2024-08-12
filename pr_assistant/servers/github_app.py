@@ -6,13 +6,13 @@ import uuid
 from typing import Any, Dict, Tuple
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
+from readyapi import APIRouter, ReadyAPI, HTTPException, Request, Response
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette_context import context
 from starlette_context.middleware import RawContextMiddleware
 
-from pr_assistant.agent.pr_assistant import PRAssistant
+from pr_assistant.assistant.pr_assistant import PRAssistant
 from pr_assistant.algo.utils import update_settings_from_args
 from pr_assistant.config_loader import get_settings, global_settings
 from pr_assistant.git_providers import get_git_provider, get_git_provider_with_context
@@ -82,7 +82,7 @@ async def handle_comments_on_pr(body: Dict[str, Any],
                                 sender_id: str,
                                 action: str,
                                 log_context: Dict[str, Any],
-                                agent: PRAssistant):
+                                assistant: PRAssistant):
     if "comment" not in body:
         return {}
     comment_body = body.get("comment", {}).get("body")
@@ -115,7 +115,7 @@ async def handle_comments_on_pr(body: Dict[str, Any],
     with get_logger().contextualize(**log_context):
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
             get_logger().info(f"Processing comment on PR {api_url=}, comment_body={comment_body}")
-            await agent.handle_request(api_url, comment_body,
+            await assistant.handle_request(api_url, comment_body,
                         notify=lambda: provider.add_eyes_reaction(comment_id, disable_eyes=disable_eyes))
         else:
             get_logger().info(f"User {sender=} is not eligible to process comment on PR {api_url=}")
@@ -126,7 +126,7 @@ async def handle_new_pr_opened(body: Dict[str, Any],
                                sender_id: str,
                                action: str,
                                log_context: Dict[str, Any],
-                               agent: PRAssistant):
+                               assistant: PRAssistant):
     title = body.get("pull_request", {}).get("title", "")
     get_settings().config.is_auto_command = True
 
@@ -146,7 +146,7 @@ async def handle_new_pr_opened(body: Dict[str, Any],
             return {}
 
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
-                await _perform_auto_commands_github("pr_commands", agent, body, api_url, log_context)
+                await _perform_auto_commands_github("pr_commands", assistant, body, api_url, log_context)
         else:
             get_logger().info(f"User {sender=} is not eligible to process PR {api_url=}")
 
@@ -156,7 +156,7 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
                         sender_id: str,
                         action: str,
                         log_context: Dict[str, Any],
-                        agent: PRAssistant):
+                        assistant: PRAssistant):
     pull_request, api_url = _check_pull_request_event(action, body, log_context)
     if not (pull_request and api_url):
         return {}
@@ -205,7 +205,7 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
     try:
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
                 get_logger().info(f"Performing incremental review for {api_url=} because of {event=} and {action=}")
-                await _perform_auto_commands_github("push_commands", agent, body, api_url, log_context)
+                await _perform_auto_commands_github("push_commands", assistant, body, api_url, log_context)
 
     finally:
         # release the waiting task block
@@ -257,7 +257,7 @@ async def handle_request(body: Dict[str, Any], event: str):
     action = body.get("action") # "created", "opened", "reopened", "ready_for_review", "review_requested", "synchronize"
     if not action:
         return {}
-    agent = PRAssistant()
+    assistant = PRAssistant()
     log_context, sender, sender_id, sender_type = get_log_context(body, event, action, build_number)
 
     # logic to ignore PRs opened by bot
@@ -272,17 +272,17 @@ async def handle_request(body: Dict[str, Any], event: str):
     # handle comments on PRs
     elif action == 'created':
         get_logger().debug(f'Request body', artifact=body, event=event)
-        await handle_comments_on_pr(body, event, sender, sender_id, action, log_context, agent)
+        await handle_comments_on_pr(body, event, sender, sender_id, action, log_context, assistant)
     # handle new PRs
     elif event == 'pull_request' and action != 'synchronize' and action != 'closed':
         get_logger().debug(f'Request body', artifact=body, event=event)
-        await handle_new_pr_opened(body, event, sender, sender_id, action, log_context, agent)
+        await handle_new_pr_opened(body, event, sender, sender_id, action, log_context, assistant)
     elif event == "issue_comment" and 'edited' in action:
         pass # handle_checkbox_clicked
     # handle pull_request event with synchronize action - "push trigger" for new commits
     elif event == 'pull_request' and action == 'synchronize':
         # get_logger().debug(f'Request body', artifact=body, event=event) # added inside handle_push_trigger_for_new_commits
-        await handle_push_trigger_for_new_commits(body, event, sender,sender_id,  action, log_context, agent)
+        await handle_push_trigger_for_new_commits(body, event, sender,sender_id,  action, log_context, assistant)
     elif event == 'pull_request' and action == 'closed':
         if get_settings().get("CONFIG.ANALYTICS_FOLDER", ""):
             handle_closed_pr(body, event, action, log_context)
@@ -325,7 +325,7 @@ def _check_pull_request_event(action: str, body: dict, log_context: dict) -> Tup
     return pull_request, api_url
 
 
-async def _perform_auto_commands_github(commands_conf: str, agent: PRAssistant, body: dict, api_url: str, log_context: dict):
+async def _perform_auto_commands_github(commands_conf: str, assistant: PRAssistant, body: dict, api_url: str, log_context: dict):
     apply_repo_settings(api_url)
     commands = get_settings().get(f"github_app.{commands_conf}")
     if not commands:
@@ -338,7 +338,7 @@ async def _perform_auto_commands_github(commands_conf: str, agent: PRAssistant, 
         other_args = update_settings_from_args(args)
         new_command = ' '.join([command] + other_args)
         get_logger().info(f"{commands_conf}. Performing auto command '{new_command}', for {api_url=}")
-        await agent.handle_request(api_url, new_command)
+        await assistant.handle_request(api_url, new_command)
 
 
 @router.get("/")
@@ -351,7 +351,7 @@ if get_settings().github_app.override_deployment_type:
     get_settings().set("GITHUB.DEPLOYMENT_TYPE", "app")
 # get_settings().set("CONFIG.PUBLISH_OUTPUT_PROGRESS", False)
 middleware = [Middleware(RawContextMiddleware)]
-app = FastAPI(middleware=middleware)
+app = ReadyAPI(middleware=middleware)
 app.include_router(router)
 
 
