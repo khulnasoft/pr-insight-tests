@@ -80,7 +80,7 @@ async def handle_comments_on_pr(body: Dict[str, Any],
                                 event: str,
                                 sender: str,
                                 sender_id: str,
-                                action: str,
+                                action_type: str,
                                 log_context: Dict[str, Any],
                                 action: PRAction):
     if "comment" not in body:
@@ -124,18 +124,18 @@ async def handle_new_pr_opened(body: Dict[str, Any],
                                event: str,
                                sender: str,
                                sender_id: str,
-                               action: str,
+                               action_type: str,
                                log_context: Dict[str, Any],
                                action: PRAction):
     title = body.get("pull_request", {}).get("title", "")
     get_settings().config.is_auto_command = True
 
 
-    pull_request, api_url = _check_pull_request_event(action, body, log_context)
+    pull_request, api_url = _check_pull_request_event(action_type, body, log_context)
     if not (pull_request and api_url):
-        get_logger().info(f"Invalid PR event: {action=} {api_url=}")
+        get_logger().info(f"Invalid PR event: {action_type=} {api_url=}")
         return {}
-    if action in get_settings().github_app.handle_pr_actions:  # ['opened', 'reopened', 'ready_for_review']
+    if action_type in get_settings().github_app.handle_pr_actions:  # ['opened', 'reopened', 'ready_for_review']
         # logic to ignore PRs with specific titles (e.g. "[Auto] ...")
         apply_repo_settings(api_url)
         ignore_pr_title_re = get_settings().get("GITHUB_APP.IGNORE_PR_TITLE", [])
@@ -154,10 +154,10 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
                         event: str,
                         sender: str,
                         sender_id: str,
-                        action: str,
+                        action_type: str,
                         log_context: Dict[str, Any],
                         action: PRAction):
-    pull_request, api_url = _check_pull_request_event(action, body, log_context)
+    pull_request, api_url = _check_pull_request_event(action_type, body, log_context)
     if not (pull_request and api_url):
         return {}
 
@@ -204,7 +204,7 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
 
     try:
         if get_identity_provider().verify_eligibility("github", sender_id, api_url) is not Eligibility.NOT_ELIGIBLE:
-                get_logger().info(f"Performing incremental review for {api_url=} because of {event=} and {action=}")
+                get_logger().info(f"Performing incremental review for {api_url=} because of {event=} and {action_type=}")
                 await _perform_auto_commands_github("push_commands", action, body, api_url, log_context)
 
     finally:
@@ -214,7 +214,7 @@ async def handle_push_trigger_for_new_commits(body: Dict[str, Any],
             _duplicate_push_triggers[api_url] -= 1
 
 
-def handle_closed_pr(body, event, action, log_context):
+def handle_closed_pr(body, event, action_type, log_context):
     pull_request = body.get("pull_request", {})
     is_merged = pull_request.get("merged", False)
     if not is_merged:
@@ -225,7 +225,7 @@ def handle_closed_pr(body, event, action, log_context):
     get_logger().info("PR-Action statistics for closed PR", analytics=True, pr_statistics=pr_statistics, **log_context)
 
 
-def get_log_context(body, event, action, build_number):
+def get_log_context(body, event, action_type, build_number):
     sender = ""
     sender_id = ""
     sender_type = ""
@@ -237,7 +237,7 @@ def get_log_context(body, event, action, build_number):
         git_org = body.get("organization", {}).get("login", "")
         installation_id = body.get("installation", {}).get("id", "")
         app_name = get_settings().get("CONFIG.APP_NAME", "Unknown")
-        log_context = {"action": action, "event": event, "sender": sender, "server_type": "github_app",
+        log_context = {"action_type": action_type, "event": event, "sender": sender, "server_type": "github_app",
                        "request_id": uuid.uuid4().hex, "build_number": build_number, "app_name": app_name,
                         "repo": repo, "git_org": git_org, "installation_id": installation_id}
     except Exception as e:
@@ -254,11 +254,11 @@ async def handle_request(body: Dict[str, Any], event: str):
         body: The request body.
         event: The GitHub event type (e.g. "pull_request", "issue_comment", etc.).
     """
-    action = body.get("action") # "created", "opened", "reopened", "ready_for_review", "review_requested", "synchronize"
-    if not action:
+    action_type = body.get("action_type") # "created", "opened", "reopened", "ready_for_review", "review_requested", "synchronize"
+    if not action_type:
         return {}
     action = PRAction()
-    log_context, sender, sender_id, sender_type = get_log_context(body, event, action, build_number)
+    log_context, sender, sender_id, sender_type = get_log_context(body, event, action_type, build_number)
 
     # logic to ignore PRs opened by bot
     if get_settings().get("GITHUB_APP.IGNORE_BOT_PR", False) and sender_type == "Bot":
@@ -270,24 +270,24 @@ async def handle_request(body: Dict[str, Any], event: str):
         # get_logger().debug(f'Request body', artifact=body, event=event) # added inside handle_checks
         pass
     # handle comments on PRs
-    elif action == 'created':
+    elif action_type == 'created':
         get_logger().debug(f'Request body', artifact=body, event=event)
-        await handle_comments_on_pr(body, event, sender, sender_id, action, log_context, action)
+        await handle_comments_on_pr(body, event, sender, sender_id, action_type, log_context, action)
     # handle new PRs
-    elif event == 'pull_request' and action != 'synchronize' and action != 'closed':
+    elif event == 'pull_request' and action_type != 'synchronize' and action_type != 'closed':
         get_logger().debug(f'Request body', artifact=body, event=event)
-        await handle_new_pr_opened(body, event, sender, sender_id, action, log_context, action)
-    elif event == "issue_comment" and 'edited' in action:
+        await handle_new_pr_opened(body, event, sender, sender_id, action_type, log_context, action)
+    elif event == "issue_comment" and 'edited' in action_type:
         pass # handle_checkbox_clicked
-    # handle pull_request event with synchronize action - "push trigger" for new commits
-    elif event == 'pull_request' and action == 'synchronize':
+    # handle pull_request event with synchronize action_type - "push trigger" for new commits
+    elif event == 'pull_request' and action_type == 'synchronize':
         # get_logger().debug(f'Request body', artifact=body, event=event) # added inside handle_push_trigger_for_new_commits
-        await handle_push_trigger_for_new_commits(body, event, sender,sender_id,  action, log_context, action)
-    elif event == 'pull_request' and action == 'closed':
+        await handle_push_trigger_for_new_commits(body, event, sender,sender_id,  action_type, log_context, action)
+    elif event == 'pull_request' and action_type == 'closed':
         if get_settings().get("CONFIG.ANALYTICS_FOLDER", ""):
-            handle_closed_pr(body, event, action, log_context)
+            handle_closed_pr(body, event, action_type, log_context)
     else:
-        get_logger().info(f"event {event=} action {action=} does not require any handling")
+        get_logger().info(f"event {event=} action_type {action_type=} does not require any handling")
     return {}
 
 
@@ -308,7 +308,7 @@ def handle_line_comments(body: Dict, comment_body: [str, Any]) -> str:
     return comment_body
 
 
-def _check_pull_request_event(action: str, body: dict, log_context: dict) -> Tuple[Dict[str, Any], str]:
+def _check_pull_request_event(action_type: str, body: dict, log_context: dict) -> Tuple[Dict[str, Any], str]:
     invalid_result = {}, ""
     pull_request = body.get("pull_request")
     if not pull_request:
@@ -319,7 +319,7 @@ def _check_pull_request_event(action: str, body: dict, log_context: dict) -> Tup
     log_context["api_url"] = api_url
     if pull_request.get("draft", True) or pull_request.get("state") != "open":
         return invalid_result
-    if action in ("review_requested", "synchronize") and pull_request.get("created_at") == pull_request.get("updated_at"):
+    if action_type in ("review_requested", "synchronize") and pull_request.get("created_at") == pull_request.get("updated_at"):
         # avoid double reviews when opening a PR for the first time
         return invalid_result
     return pull_request, api_url
