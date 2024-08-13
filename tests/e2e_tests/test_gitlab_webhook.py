@@ -5,9 +5,9 @@ from datetime import datetime
 
 import gitlab
 
-from pr_assistant.config_loader import get_settings
-from pr_assistant.git_providers import get_git_provider
-from pr_assistant.log import setup_logger, get_logger
+from pr_action.config_loader import get_settings
+from pr_action.git_providers import get_git_provider
+from pr_action.log import setup_logger, get_logger
 from tests.e2e_tests.e2e_utils import NEW_FILE_CONTENT, FILE_PATH, PR_HEADER_START_WITH, REVIEW_START_WITH, \
     IMPROVE_START_WITH_REGEX_PATTERN, NUM_MINUTES
 
@@ -20,7 +20,7 @@ def test_e2e_run_github_app():
     GITLAB_URL = "https://gitlab.com"
     GITLAB_TOKEN = get_settings().gitlab.PERSONAL_ACCESS_TOKEN
     gl = gitlab.Gitlab(GITLAB_URL, private_token=GITLAB_TOKEN)
-    repo_url = 'khulnasoft/pr-assistant-tests'
+    repo_url = 'khulnasoft/pr-action-tests'
     project = gl.projects.get(repo_url)
 
     base_branch = "main"  # or any base branch you want

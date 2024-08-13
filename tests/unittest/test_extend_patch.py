@@ -1,7 +1,7 @@
 import pytest
-from pr_assistant.algo.git_patch_processing import extend_patch
-from pr_assistant.algo.pr_processing import pr_generate_extended_diff
-from pr_assistant.algo.token_handler import TokenHandler
+from pr_action.algo.git_patch_processing import extend_patch
+from pr_action.algo.pr_processing import pr_generate_extended_diff
+from pr_action.algo.token_handler import TokenHandler
 
 
 class TestExtendPatch:

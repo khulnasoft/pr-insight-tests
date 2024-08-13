@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pr-assistant"
+name = "pr-action"
 version = "0.2.2"
 
 authors = [{name= "KhulnaSoft", email = "info@khulnasoft.com"}]
@@ -12,10 +12,10 @@ maintainers = [
   {name = "KhulnaSoft DevOps", email = "support@khulnasoft.com"},
 ]
 
-description = "KhulnaSoft PR-Assistant aims to help efficiently review and handle pull requests, by providing AI feedbacks and suggestions."
+description = "KhulnaSoft PR-Action aims to help efficiently review and handle pull requests, by providing AI feedbacks and suggestions."
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["AI", "Assistants", "Pull Request", "Automation", "Code Review"]
+keywords = ["AI", "Actions", "Pull Request", "Automation", "Code Review"]
 license = {name = "Apache 2.0", file = "LICENSE"}
 
 classifiers = [
@@ -29,8 +29,8 @@ dynamic = ["dependencies"]
 dependencies = {file = ["requirements.txt"]}
 
 [project.urls]
-"Homepage" = "https://github.com/Khulnasoft/pr-assistant"
-"Documentation" = "https://pr-assistant-docs.khulnasoft.com/"
+"Homepage" = "https://github.com/Khulnasoft/pr-action"
+"Documentation" = "https://pr-action-docs.khulnasoft.com/"
 
 [tool.setuptools]
 include-package-data = true
@@ -38,10 +38,10 @@ license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["pr_assistant*"] # include pr_assistant and any sub-packages it finds under it.
+include = ["pr_action*"] # include pr_action and any sub-packages it finds under it.
 
 [project.scripts]
-pr-assistant = "pr_assistant.cli:run"
+pr-action = "pr_action.cli:run"
 
 
 [tool.ruff]

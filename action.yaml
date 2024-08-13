@@ -1,4 +1,4 @@
-name: 'Khulnasoft PR Assistant'
+name: 'Khulnasoft PR Action'
 description: 'Summarize, review and suggest improvements for pull requests'
 branding:
   icon: 'award'
