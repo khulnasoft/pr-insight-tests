@@ -115,7 +115,7 @@ async def gitlab_webhook(background_tasks: BackgroundTasks, request: Request):
 
         # logic to ignore bot users (unlike Github, no direct flag for bot users in gitlab)
         sender_name = data.get("user", {}).get("name", "unknown").lower()
-        if 'codium' in sender_name or 'bot_' in sender_name or 'bot-' in sender_name or '_bot' in sender_name or '-bot' in sender_name:
+        if 'khulnasoft' in sender_name or 'bot_' in sender_name or 'bot-' in sender_name or '_bot' in sender_name or '-bot' in sender_name:
             get_logger().info(f"Skipping bot user: {sender_name}")
             return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder({"message": "success"}))
 

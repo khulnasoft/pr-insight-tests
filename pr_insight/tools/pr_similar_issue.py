@@ -465,7 +465,7 @@ class IssueLevel(str, Enum):
 
 class Metadata(BaseModel):
     repo: str
-    username: str = Field(default="@codium")
+    username: str = Field(default="@khulnasoft")
     created_at: str = Field(default="01-01-1970 00:00:00.00000")
     level: IssueLevel = Field(default=IssueLevel.ISSUE)
 
