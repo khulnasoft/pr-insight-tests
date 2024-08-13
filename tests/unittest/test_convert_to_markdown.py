@@ -79,8 +79,8 @@ class TestBR:
         file_change_description = '- Imported `FilePatchInfo` and `EDIT_TYPE` from `pr_action.algo.types` instead of `pr_action.git_providers.git_provider`.'
         file_change_description_br = insert_br_after_x_chars(file_change_description)
         expected_output = ('<li>Imported <code>FilePatchInfo</code> and <code>EDIT_TYPE</code> from '
-                   '<code>pr_action.algo.types</code> instead <br>of '
-                   '<code>pr_action.git_providers.git_provider</code>.')
+                   '<code>pr_insight.algo.types</code> <br>instead of '
+                   '<code>pr_insight.git_providers.git_provider</code>.')
         assert file_change_description_br == expected_output
         # print("-----")
         # print(file_change_description_br)
