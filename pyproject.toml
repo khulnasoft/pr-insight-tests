@@ -4,17 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pr-insight"
-version = "0.2.1"
+version = "0.2.2"
 
-authors = [{name= "KhulnaSoftAI", email = "tal.r@khulnasoft.com"}]
+authors = [{name= "KhulnaSoft", email = "info@khulnasoft.com"}]
 
 maintainers = [
-  {name = "Tal Ridnik", email = "tal.r@khulnasoft.com"},
-  {name = "Ori Kotek", email = "ori.k@khulnasoft.com"},
-  {name = "Hussam Lawen", email = "hussam.l@khulnasoft.com"},
+  {name = "KhulnaSoft DevOps", email = "info@khulnasoft.com"},
 ]
 
-description = "KhulnaSoftAI PR-Insight aims to help efficiently review and handle pull requests, by providing AI feedbacks and suggestions."
+description = "KhulnaSoft PR-Insight aims to help efficiently review and handle pull requests, by providing AI feedbacks and suggestions."
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["AI", "Insights", "Pull Request", "Automation", "Code Review"]

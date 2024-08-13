@@ -1,4 +1,4 @@
-The different tools and sub-tools used by KhulnaSoftAI PR-Insight are adjustable via the **[configuration file](https://github.com/KhulnaSoft/pr-insight/blob/main/pr_insight/settings/configuration.toml)**.
+The different tools and sub-tools used by KhulnaSoft PR-Insight are adjustable via the **[configuration file](https://github.com/KhulnaSoft/pr-insight/blob/main/pr_insight/settings/configuration.toml)**.
 
 In addition to general configuration options, each tool has its own configurations. For example, the `review` tool will use parameters from the [pr_reviewer](https://github.com/KhulnaSoft/pr-insight/blob/main/pr_insight/settings/configuration.toml#L16) section in the configuration file.
 See the [Tools Guide](https://khulnasoft.github.io/Docs-PR-Insight/tools/) for a detailed description of the different tools and their configurations.

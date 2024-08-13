@@ -1,9 +1,9 @@
 {
-  "name": "KhulnaSoftAI PR-Insight",
-  "description": "KhulnaSoftAI PR-Insight",
+  "name": "KhulnaSoft PR-Insight",
+  "description": "KhulnaSoft PR-Insight",
   "key": "app_key",
   "vendor": {
-    "name": "KhulnaSoftAI",
+    "name": "KhulnaSoft",
     "url": "https://khulnasoft.com"
   },
   "authentication": {

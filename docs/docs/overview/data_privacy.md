@@ -5,9 +5,9 @@ https://openai.com/enterprise-privacy
 
 ## PR-Insight Pro 💎
 
-- When using PR-Insight Pro 💎, hosted by KhulnaSoftAI, we will not store any of your data, nor will we use it for training. You will also benefit from an OpenAI account with zero data retention.
+- When using PR-Insight Pro 💎, hosted by KhulnaSoft, we will not store any of your data, nor will we use it for training. You will also benefit from an OpenAI account with zero data retention.
 
-- For certain clients, KhulnaSoftAI-hosted PR-Insight Pro will use KhulnaSoftAI’s proprietary models. If this is the case, you will be notified.
+- For certain clients, KhulnaSoft-hosted PR-Insight Pro will use KhulnaSoft’s proprietary models. If this is the case, you will be notified.
 
 - No passive collection of Code and Pull Requests’ data — PR-Insight will be active only when you invoke it, and it will then extract and analyze only data relevant to the executed command and queried pull request.
 

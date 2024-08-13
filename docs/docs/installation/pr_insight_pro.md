@@ -1,7 +1,7 @@
 
 ## Getting Started with PR-Insight Pro
 
-PR-Insight Pro is a versatile application compatible with GitHub, GitLab, and BitBucket, hosted by KhulnaSoftAI.
+PR-Insight Pro is a versatile application compatible with GitHub, GitLab, and BitBucket, hosted by KhulnaSoft.
 See [here](https://pr-insight-docs.khulnasoft.com/#pr-insight-pro) for more details about the benefits of using PR-Insight Pro.
 
 Interested parties can subscribe to PR-Insight Pro through the following [link](https://www.khulnasoft.com/pricing/). 
@@ -10,7 +10,7 @@ After subscribing, you are granted the ability to easily install the application
 ![PR Insight Pro](https://khulnasoft.com/images/pr_insight/pr_insight_pro_install.png){width=468}
 
 Each user who wants to use PR-Insight pro needs to buy a seat. 
-Initially, KhulnaSoftAI offers a two-week trial period at no cost, after which continued access requires each user to secure a personal seat.
+Initially, KhulnaSoft offers a two-week trial period at no cost, after which continued access requires each user to secure a personal seat.
 Once a user acquires a seat, they gain the flexibility to use PR-Insight Pro across any repository where it was enabled.
 
 Users without a purchased seat who interact with a repository featuring PR-Insight Pro are entitled to receive up to five complimentary feedbacks.
@@ -53,7 +53,7 @@ Install a webhook for your repository or groups, by clicking “webhooks” on t
 In the webhook definition form, fill in the following fields:
 URL: https://pro.gitlab.pr-insight.khulnasoft.com/webhook
 
-Secret token: Your KhulnaSoftAI key
+Secret token: Your KhulnaSoft key
 Trigger: Check the ‘comments’ and ‘merge request events’ boxes.
 Enable SSL verification: Check the box.
 

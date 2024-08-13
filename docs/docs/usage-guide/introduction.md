@@ -1,5 +1,5 @@
 
-After [installation](https://pr-insight-docs.khulnasoft.com/installation/), there are three basic ways to invoke KhulnaSoftAI PR-Insight:
+After [installation](https://pr-insight-docs.khulnasoft.com/installation/), there are three basic ways to invoke KhulnaSoft PR-Insight:
 
 1. Locally running a CLI command
 2. Online usage - by [commenting](https://github.com/KhulnaSoft/pr-insight/pull/229#issuecomment-1695021901) on a PR

@@ -61,7 +61,7 @@ Any configuration value in [configuration file](https://github.com/KhulnaSoft/pr
 ## GitHub App
 
 !!! note "Configurations for PR-Insight Pro"
-    PR-Insight Pro for GitHub is an App, hosted by KhulnaSoftAI. So all the instructions below are relevant also for PR-Insight Pro users.
+    PR-Insight Pro for GitHub is an App, hosted by KhulnaSoft. So all the instructions below are relevant also for PR-Insight Pro users.
     Same goes for [GitLab webhook](#gitlab-webhook) and [BitBucket App](#bitbucket-app) sections.
 
 ### GitHub app automatic tools when a new PR is opened
