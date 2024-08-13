@@ -23,8 +23,8 @@ In this case, we can fit the entire PR in a single prompt:
 ### Large PR
 
 #### Motivation
-Pull Requests can be very long and contain a lot of information with varying degree of relevance to the pr-action.
-We want to be able to pack as much information as possible in a single LMM prompt, while keeping the information relevant to the pr-action.
+Pull Requests can be very long and contain a lot of information with varying degree of relevance to the pr-insight.
+We want to be able to pack as much information as possible in a single LMM prompt, while keeping the information relevant to the pr-insight.
 
 #### Compression strategy
 We prioritize additions over deletions:

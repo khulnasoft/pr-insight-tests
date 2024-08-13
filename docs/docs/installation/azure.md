@@ -1,5 +1,5 @@
 ## Azure DevOps Pipeline
-You can use a pre-built Action Docker image to run PR-Action as an Azure devops pipeline.
+You can use a pre-built Action Docker image to run PR-Insight as an Azure devops pipeline.
 add the following file to your repository under `azure-pipelines.yml`:
 ```yaml
 # Opt out of CI triggers
@@ -14,21 +14,21 @@ pr:
   drafts: false
 
 stages:
-- stage: pr_action
-  displayName: 'PR Action Stage'
+- stage: pr_insight
+  displayName: 'PR Insight Stage'
   jobs:
-  - job: pr_action_job
-    displayName: 'PR Action Job'
+  - job: pr_insight_job
+    displayName: 'PR Insight Job'
     pool:
       vmImage: 'ubuntu-latest'
     container:
-      image: khulnasoft/pr-action:latest
+      image: khulnasoft/pr-insight:latest
       options: --entrypoint ""
     variables:
-      - group: pr_action
+      - group: pr_insight
     steps:
     - script: |
-        echo "Running PR Action action step"
+        echo "Running PR Insight action step"
 
         # Construct PR_URL
         PR_URL="${SYSTEM_COLLECTIONURI}${SYSTEM_TEAMPROJECT}/_git/${BUILD_REPOSITORY_NAME}/pullrequest/${SYSTEM_PULLREQUEST_PULLREQUESTID}"
@@ -41,19 +41,19 @@ stages:
         export azure_devops__org="$ORG_URL"
         export config__git_provider="azure"
         
-        pr-action --pr_url="$PR_URL" describe
-        pr-action --pr_url="$PR_URL" review
-        pr-action --pr_url="$PR_URL" improve
+        pr-insight --pr_url="$PR_URL" describe
+        pr-insight --pr_url="$PR_URL" review
+        pr-insight --pr_url="$PR_URL" improve
       env:
         azure_devops__pat: $(azure_devops_pat)
         openai__key: $(OPENAI_KEY)
-      displayName: 'Run PR Action'
+      displayName: 'Run PR Insight'
 ```
-This script will run PR-Action on every new merge request, with the `improve`, `review`, and `describe` commands.
+This script will run PR-Insight on every new merge request, with the `improve`, `review`, and `describe` commands.
 Note that you need to export the `azure_devops__pat` and `OPENAI_KEY` variables in the Azure DevOps pipeline settings (Pipelines -> Library -> + Variable group):
-![PR Action Pro](https://khulnasoft.com/images/pr_action/azure_devops_pipeline_secrets.png){width=468}
+![PR Insight Pro](https://khulnasoft.com/images/pr_insight/azure_devops_pipeline_secrets.png){width=468}
 
-Make sure to give pipeline permissions to the `pr_action` variable group.
+Make sure to give pipeline permissions to the `pr_insight` variable group.
 
 
 ## Azure DevOps from CLI
@@ -66,7 +66,7 @@ git_provider="azure"
 
 Azure DevOps provider supports [PAT token](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows) or [DefaultAzureCredential](https://learn.microsoft.com/en-us/azure/developer/python/sdk/authentication-overview#authentication-in-server-environments) authentication.
 PAT is faster to create, but has build in expiration date, and will use the user identity for API calls. 
-Using DefaultAzureCredential you can use managed identity or Service principle, which are more secure and will create separate ADO user identity (via AAD) to the action.
+Using DefaultAzureCredential you can use managed identity or Service principle, which are more secure and will create separate ADO user identity (via AAD) to the insight.
 
 If PAT was chosen, you can assign the value in .secrets.toml. 
 If DefaultAzureCredential was chosen, you can assigned the additional env vars like AZURE_CLIENT_SECRET directly, 

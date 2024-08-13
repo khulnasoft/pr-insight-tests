@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from pr_action.git_providers.codecommit_client import CodeCommitClient
+from pr_insight.git_providers.codecommit_client import CodeCommitClient
 
 
 class TestCodeCommitProvider:

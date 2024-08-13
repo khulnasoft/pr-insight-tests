@@ -1,1 +1,1 @@
-FROM khulnasoft/pr-action:github_action
+FROM khulnasoft/pr-insight:github_action

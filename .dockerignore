@@ -1,5 +1,5 @@
 venv/
-pr_action/settings/.secrets.toml
+pr_insight/settings/.secrets.toml
 pics/
-pr_action.egg-info/
+pr_insight.egg-info/
 build/
