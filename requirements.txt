@@ -1,8 +1,8 @@
-aiohttp==3.10.2
+aiohttp==3.10.3
 anthropic[vertex]==0.21.3
 atlassian-python-api==3.41.4
 azure-devops==7.1.0b3
-azure-identity==1.16.1
+azure-identity==1.17.1
 boto3==1.33.6
 dynaconf==3.2.4
 readyapi==0.110.3
