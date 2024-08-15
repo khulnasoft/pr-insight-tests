@@ -135,7 +135,7 @@ class BitbucketProvider(GitProvider):
             try:
                 names_original = [d.new.path for d in diffs_original]
                 names_kept = [d.new.path for d in diffs]
-                 names_filtered = list(set(names_original) - set(names_kept))
+                names_filtered = list(set(names_original) - set(names_kept))
                 get_logger().info(f"Filtered out [ignore] files for PR", extra={
                     'original_files': names_original,
                     'names_kept': names_kept,
