@@ -19,7 +19,7 @@ def main():
     provider = "github" # GitHub provider
     user_token = "..."  # GitHub user token
     openai_key = "..."  # OpenAI key
-    pr_url = "..."      # PR URL, for example 'https://github.com/KhulnaSoft/pr-insight/pull/809'
+    pr_url = "..."      # PR URL, for example 'https://github.com/Khulnasoft/pr-insight/pull/809'
     command = "/review" # Command to run (e.g. '/review', '/describe', '/ask="What is the purpose of this PR?"', ...)
 
     # Setting the configurations
@@ -71,7 +71,7 @@ If you want to ensure you're running a specific version of the Docker image, con
 docker run --rm -it -e OPENAI.KEY=<your key> -e GITHUB.USER_TOKEN=<your token> khulnasoft/pr-insight@sha256:71b5ee15df59c745d352d84752d01561ba64b6d51327f97d46152f0c58a5f678 --pr_url <pr_url> review
 ```
 
-Or you can run a [specific released versions](https://github.com/KhulnaSoft/pr-insight/blob/main/RELEASE_NOTES.md) of pr-insight, for example:
+Or you can run a [specific released versions](https://github.com/Khulnasoft/pr-insight/blob/main/RELEASE_NOTES.md) of pr-insight, for example:
 ```
 khulnasoft/pr-insight@v0.9
 ```
@@ -83,7 +83,7 @@ khulnasoft/pr-insight@v0.9
 1. Clone this repository:
 
 ```
-git clone https://github.com/KhulnaSoft/pr-insight.git
+git clone https://github.com/Khulnasoft/pr-insight.git
 ```
 
 2. Navigate to the `/pr-insight` folder and install the requirements in your favorite virtual environment:

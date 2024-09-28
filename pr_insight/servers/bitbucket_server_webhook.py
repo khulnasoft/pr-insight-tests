@@ -4,8 +4,8 @@ import os
 from typing import List
 
 import uvicorn
-from readyapi import APIRouter, ReadyAPI
-from readyapi.encoders import jsonable_encoder
+from fastapi import APIRouter, FastAPI
+from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
@@ -18,7 +18,7 @@ from pr_insight.config_loader import get_settings
 from pr_insight.git_providers.utils import apply_repo_settings
 from pr_insight.log import LoggingFormat, get_logger, setup_logger
 from pr_insight.servers.utils import verify_signature
-from readyapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse
 
 
 setup_logger(fmt=LoggingFormat.JSON, level="DEBUG")
@@ -150,7 +150,7 @@ async def root():
 
 
 def start():
-    app = ReadyAPI(middleware=[Middleware(RawContextMiddleware)])
+    app = FastAPI(middleware=[Middleware(RawContextMiddleware)])
     app.include_router(router)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 

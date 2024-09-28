@@ -9,7 +9,20 @@ KhulnaSoft PR-Insight is an open-source tool to help efficiently review and hand
 - See the [Tools Guide](./tools/index.md) for a detailed description of the different tools.
 
 
+## PR-Insight Docs Smart Search
+
+To search the documentation site using natural language:
+
+1) Comment `/help "your question"` in either:
+
+   - A pull request where PR-Insight is installed
+   - A [PR Chat](https://pr-insight-docs.khulnasoft.com/chrome-extension/features/#pr-chat)
+
+2) PR-Insight will respond with an [answer](https://github.com/Khulnasoft/pr-insight/pull/1241#issuecomment-2365259334) that includes relevant documentation links.
+
+
 ## PR-Insight Features
+
 PR-Insight offers extensive pull request functionalities across various git providers.
 
 |       |                                                                                                                       | GitHub | Gitlab | Bitbucket | Azure DevOps |
@@ -48,25 +61,25 @@ PR-Insight offers extensive pull request functionalities across various git prov
 ## Example Results
 <hr>
 
-#### [/describe](https://github.com/KhulnaSoft/pr-insight/pull/530)
+#### [/describe](https://github.com/Khulnasoft/pr-insight/pull/530)
 <figure markdown="1">
 ![/describe](https://www.khulnasoft.com/images/pr_insight/describe_new_short_main.png){width=512}
 </figure>
 <hr>
 
-#### [/review](https://github.com/KhulnaSoft/pr-insight/pull/732#issuecomment-1975099151)
+#### [/review](https://github.com/Khulnasoft/pr-insight/pull/732#issuecomment-1975099151)
 <figure markdown="1">
 ![/review](https://www.khulnasoft.com/images/pr_insight/review_new_short_main.png){width=512}
 </figure>
 <hr>
 
-#### [/improve](https://github.com/KhulnaSoft/pr-insight/pull/732#issuecomment-1975099159)
+#### [/improve](https://github.com/Khulnasoft/pr-insight/pull/732#issuecomment-1975099159)
 <figure markdown="1">
 ![/improve](https://www.khulnasoft.com/images/pr_insight/improve_new_short_main.png){width=512}
 </figure>
 <hr>
 
-#### [/generate_labels](https://github.com/KhulnaSoft/pr-insight/pull/530)
+#### [/generate_labels](https://github.com/Khulnasoft/pr-insight/pull/530)
 <figure markdown="1">
 ![/generate_labels](https://www.khulnasoft.com/images/pr_insight/geneare_custom_labels_main_short.png){width=300}
 </figure>
@@ -78,4 +91,4 @@ The following diagram illustrates PR-Insight tools and their flow:
 
 ![PR-Insight Tools](https://khulnasoft.com/images/pr_insight/diagram-v0.9.png)
 
-Check out the [PR Compression strategy](core-abilities/index.md) page for more details on how we convert a code diff to a manageable LLM prompt
+Check out the [core abilities](core-abilities/index.md) page for a comprehensive overview of the variety of core abilities used by PR-Insight.

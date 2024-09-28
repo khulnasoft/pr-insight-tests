@@ -3,7 +3,7 @@ from enum import Enum
 from json import JSONDecodeError
 
 import uvicorn
-from readyapi import APIRouter, ReadyAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from pydantic import BaseModel
 from starlette.middleware import Middleware
 from starlette_context import context
@@ -67,7 +67,7 @@ def start():
     # to prevent adding help messages with the output
     get_settings().set("CONFIG.CLI_MODE", True)
     middleware = [Middleware(RawContextMiddleware)]
-    app = ReadyAPI(middleware=middleware)
+    app = FastAPI(middleware=middleware)
     app.include_router(router)
 
     uvicorn.run(app, host="0.0.0.0", port=3000)

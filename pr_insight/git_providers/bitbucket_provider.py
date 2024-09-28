@@ -12,7 +12,13 @@ from ..algo.language_handler import is_valid_file
 from ..algo.utils import find_line_number_of_relevant_line_in_file
 from ..config_loader import get_settings
 from ..log import get_logger
-from .git_provider import GitProvider
+from .git_provider import GitProvider, MAX_FILES_ALLOWED_FULL
+
+
+def _gef_filename(diff):
+    if diff.new.path:
+        return diff.new.path
+    return diff.old.path
 
 
 class BitbucketProvider(GitProvider):
@@ -40,6 +46,7 @@ class BitbucketProvider(GitProvider):
         self.temp_comments = []
         self.incremental = incremental
         self.diff_files = None
+        self.git_files = None
         if pr_url:
             self.set_pr(pr_url)
         self.bitbucket_comment_api_url = self.pr._BitbucketBase__data["links"]["comments"]["href"]
@@ -114,7 +121,7 @@ class BitbucketProvider(GitProvider):
 
     def is_supported(self, capability: str) -> bool:
         if capability in ['get_issue_comments', 'publish_inline_comments', 'get_labels', 'gfm_markdown',
-                            'publish_file_comments']:
+                          'publish_file_comments']:
             return False
         return True
 
@@ -123,7 +130,17 @@ class BitbucketProvider(GitProvider):
         self.pr = self._get_pr()
 
     def get_files(self):
-        return [diff.new.path for diff in self.pr.diffstat()]
+        try:
+            git_files = context.get("git_files", None)
+            if git_files:
+                return git_files
+            self.git_files = [_gef_filename(diff) for diff in self.pr.diffstat()]
+            context["git_files"] = self.git_files
+            return self.git_files
+        except Exception:
+            if not self.git_files:
+                self.git_files = [_gef_filename(diff) for diff in self.pr.diffstat()]
+            return self.git_files
 
     def get_diff_files(self) -> list[FilePatchInfo]:
         if self.diff_files:
@@ -134,17 +151,40 @@ class BitbucketProvider(GitProvider):
         if diffs != diffs_original:
             try:
                 names_original = [d.new.path for d in diffs_original]
-                names_filtered = [d.new.path for d in diffs]
+                names_kept = [d.new.path for d in diffs]
+                names_filtered = list(set(names_original) - set(names_kept))
                 get_logger().info(f"Filtered out [ignore] files for PR", extra={
                     'original_files': names_original,
-                    'filtered_files': names_filtered
+                    'names_kept': names_kept,
+                    'names_filtered': names_filtered
+
                 })
             except Exception as e:
                 pass
 
         # get the pr patches
-        pr_patch = self.pr.diff()
-        diff_split = ["diff --git" + x for x in pr_patch.split("diff --git") if x.strip()]
+        try:
+            pr_patches = self.pr.diff()
+        except Exception as e:
+            # Try different encodings if UTF-8 fails
+            get_logger().warning(f"Failed to decode PR patch with utf-8, error: {e}")
+            encodings_to_try = ['iso-8859-1', 'latin-1', 'ascii', 'utf-16']
+            pr_patches = None
+            for encoding in encodings_to_try:
+                try:
+                    pr_patches = self.pr.diff(encoding=encoding)
+                    get_logger().info(f"Successfully decoded PR patch with encoding {encoding}")
+                    break
+                except UnicodeDecodeError:
+                    continue
+
+            if pr_patches is None:
+                raise ValueError(f"Failed to decode PR patch with encodings {encodings_to_try}")
+
+        diff_split = ["diff --git" + x for x in pr_patches.split("diff --git") if x.strip()]
+        # filter all elements of 'diff_split' that are of indices in 'diffs_original' that are not in 'diffs'
+        if len(diff_split) > len(diffs) and len(diffs_original) == len(diff_split):
+            diff_split = [diff_split[i] for i in range(len(diff_split)) if diffs_original[i] in diffs]
         if len(diff_split) != len(diffs):
             get_logger().error(f"Error - failed to split the diff into {len(diffs)} parts")
             return []
@@ -166,24 +206,45 @@ class BitbucketProvider(GitProvider):
                       diff_split_lines[5].startswith("@@"))):
                 diff_split[i] = "\n".join(diff_split_lines[4:])
             else:
-                get_logger().error(f"Error - failed to remove the bitbucket header from diff {i}")
-                break
+                if diffs[i].data.get('lines_added', 0) == 0 and diffs[i].data.get('lines_removed', 0) == 0:
+                    diff_split[i] = ""
+                elif len(diff_split_lines) <= 3:
+                    diff_split[i] = ""
+                    get_logger().info(f"Disregarding empty diff for file {_gef_filename(diffs[i])}")
+                else:
+                    get_logger().warning(f"Bitbucket failed to get diff for file {_gef_filename(diffs[i])}")
+                    diff_split[i] = ""
 
         invalid_files_names = []
         diff_files = []
+        counter_valid = 0
+        # get full files
         for index, diff in enumerate(diffs):
-            if not is_valid_file(diff.new.path):
-                invalid_files_names.append(diff.new.path)
+            file_path = _gef_filename(diff)
+            if not is_valid_file(file_path):
+                invalid_files_names.append(file_path)
                 continue
 
             try:
-                if diff.old.get_data("links"):
-                    original_file_content_str = self._get_pr_file_content(diff.old.get_data("links")['self']['href'])
-                else:
+                counter_valid += 1
+                if get_settings().get("bitbucket_app.avoid_full_files", False):
                     original_file_content_str = ""
-                if diff.new.get_data("links"):
-                    new_file_content_str = self._get_pr_file_content(diff.new.get_data("links")['self']['href'])
+                    new_file_content_str = ""
+                elif counter_valid < MAX_FILES_ALLOWED_FULL // 2:  # factor 2 because bitbucket has limited API calls
+                    if diff.old.get_data("links"):
+                        original_file_content_str = self._get_pr_file_content(
+                            diff.old.get_data("links")['self']['href'])
+                    else:
+                        original_file_content_str = ""
+                    if diff.new.get_data("links"):
+                        new_file_content_str = self._get_pr_file_content(diff.new.get_data("links")['self']['href'])
+                    else:
+                        new_file_content_str = ""
                 else:
+                    if counter_valid == MAX_FILES_ALLOWED_FULL // 2:
+                        get_logger().info(
+                            f"Bitbucket too many files in PR, will avoid loading full content for rest of files")
+                    original_file_content_str = ""
                     new_file_content_str = ""
             except Exception as e:
                 get_logger().exception(f"Error - bitbucket failed to get file content, error: {e}")
@@ -194,7 +255,7 @@ class BitbucketProvider(GitProvider):
                 original_file_content_str,
                 new_file_content_str,
                 diff_split[index],
-                diff.new.path,
+                file_path,
             )
 
             if diff.data['status'] == 'added':
@@ -275,11 +336,13 @@ class BitbucketProvider(GitProvider):
             get_logger().exception(f"Failed to remove comment, error: {e}")
 
     # function to create_inline_comment
-    def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str, absolute_position: int = None):
+    def create_inline_comment(self, body: str, relevant_file: str, relevant_line_in_file: str,
+                              absolute_position: int = None):
         body = self.limit_output_characters(body, self.max_comment_length)
         position, absolute_position = find_line_number_of_relevant_line_in_file(self.get_diff_files(),
-                                                                            relevant_file.strip('`'),
-                                                                            relevant_line_in_file, absolute_position)
+                                                                                relevant_file.strip('`'),
+                                                                                relevant_line_in_file,
+                                                                                absolute_position)
         if position == -1:
             if get_settings().config.verbosity_level >= 2:
                 get_logger().info(f"Could not find position for {relevant_file} {relevant_line_in_file}")
@@ -289,10 +352,9 @@ class BitbucketProvider(GitProvider):
         path = relevant_file.strip()
         return dict(body=body, path=path, position=absolute_position) if subject_type == "LINE" else {}
 
-
-    def publish_inline_comment(self, comment: str, from_line: int, file: str):
+    def publish_inline_comment(self, comment: str, from_line: int, file: str, original_suggestion=None):
         comment = self.limit_output_characters(comment, self.max_comment_length)
-        payload = json.dumps( {
+        payload = json.dumps({
             "content": {
                 "raw": comment,
             },
@@ -337,10 +399,10 @@ class BitbucketProvider(GitProvider):
         for comment in comments:
             if 'position' in comment:
                 self.publish_inline_comment(comment['body'], comment['position'], comment['path'])
-            elif 'start_line' in comment: # multi-line comment
+            elif 'start_line' in comment:  # multi-line comment
                 # note that bitbucket does not seem to support range - only a comment on a single line - https://community.developer.atlassian.com/t/api-post-endpoint-for-inline-pull-request-comments/60452
                 self.publish_inline_comment(comment['body'], comment['start_line'], comment['path'])
-            elif 'line' in comment: # single-line comment
+            elif 'line' in comment:  # single-line comment
                 self.publish_inline_comment(comment['body'], comment['line'], comment['path'])
             else:
                 get_logger().error(f"Could not publish inline comment {comment}")
@@ -424,7 +486,6 @@ class BitbucketProvider(GitProvider):
         except Exception:
             return ""
 
-
     def create_or_update_pr_file(self, file_path: str, branch: str, contents="", message="") -> None:
         url = (f"https://api.bitbucket.org/2.0/repositories/{self.workspace_slug}/{self.repo_slug}/src/")
         if not message:
@@ -432,12 +493,12 @@ class BitbucketProvider(GitProvider):
                 message = f"Update {file_path}"
             else:
                 message = f"Create {file_path}"
-        files={file_path: contents}
-        data={
+        files = {file_path: contents}
+        data = {
             "message": message,
             "branch": branch
         }
-        headers = {'Authorization':self.headers['Authorization']} if 'Authorization' in self.headers else {}
+        headers = {'Authorization': self.headers['Authorization']} if 'Authorization' in self.headers else {}
         try:
             requests.request("POST", url, headers=headers, data=data, files=files)
         except Exception:
@@ -462,7 +523,7 @@ class BitbucketProvider(GitProvider):
             "description": description,
             "title": pr_title
 
-            })
+        })
 
         response = requests.request("PUT", self.bitbucket_pull_request_api_url, headers=self.headers, data=payload)
         try:

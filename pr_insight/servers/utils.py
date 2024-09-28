@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from typing import Callable, Any
 
-from readyapi import HTTPException
+from fastapi import HTTPException
 
 
 def verify_signature(payload_body, secret_token, signature_header):

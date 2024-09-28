@@ -9,9 +9,9 @@ import secrets
 from urllib.parse import unquote
 
 import uvicorn
-from readyapi import APIRouter, Depends, ReadyAPI, HTTPException
-from readyapi.security import HTTPBasic, HTTPBasicCredentials
-from readyapi.encoders import jsonable_encoder
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
@@ -24,8 +24,8 @@ from pr_insight.algo.utils import update_settings_from_args
 from pr_insight.config_loader import get_settings
 from pr_insight.git_providers.utils import apply_repo_settings
 from pr_insight.log import get_logger
-from readyapi import Request, Depends
-from readyapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import Request, Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pr_insight.log import LoggingFormat, get_logger, setup_logger
 
 setup_logger(fmt=LoggingFormat.JSON, level="DEBUG")
@@ -68,6 +68,7 @@ def authorize(credentials: HTTPBasicCredentials = Depends(security)):
 async def _perform_commands_azure(commands_conf: str, insight: PRInsight, api_url: str, log_context: dict):
     apply_repo_settings(api_url)
     commands = get_settings().get(f"azure_devops_server.{commands_conf}")
+    get_settings().set("config.is_auto_command", True)
     for command in commands:
         try:
             split_command = command.split(" ")
@@ -139,7 +140,7 @@ async def root():
     return {"status": "ok"}
 
 def start():
-    app = ReadyAPI(middleware=[Middleware(RawContextMiddleware)])
+    app = FastAPI(middleware=[Middleware(RawContextMiddleware)])
     app.include_router(router)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 

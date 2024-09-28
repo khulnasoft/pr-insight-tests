@@ -1,11 +1,12 @@
 import copy
+import re
 import json
 from datetime import datetime
 
 import uvicorn
-from readyapi import APIRouter, ReadyAPI, Request, status
-from readyapi.encoders import jsonable_encoder
-from readyapi.responses import JSONResponse
+from fastapi import APIRouter, FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette_context import context
@@ -61,6 +62,7 @@ async def _perform_commands_gitlab(commands_conf: str, insight: PRInsight, api_u
                                    log_context: dict):
     apply_repo_settings(api_url)
     commands = get_settings().get(f"gitlab.{commands_conf}", {})
+    get_settings().set("config.is_auto_command", True)
     for command in commands:
         try:
             split_command = command.split(" ")
@@ -75,6 +77,57 @@ async def _perform_commands_gitlab(commands_conf: str, insight: PRInsight, api_u
             get_logger().error(f"Failed to perform command {command}: {e}")
 
 
+def is_bot_user(data) -> bool:
+    try:
+        # logic to ignore bot users (unlike Github, no direct flag for bot users in gitlab)
+        sender_name = data.get("user", {}).get("name", "unknown").lower()
+        bot_indicators = ['khulnasoft', 'bot_', 'bot-', '_bot', '-bot']
+        if any(indicator in sender_name for indicator in bot_indicators):
+            get_logger().info(f"Skipping GitLab bot user: {sender_name}")
+            return True
+    except Exception as e:
+        get_logger().error(f"Failed 'is_bot_user' logic: {e}")
+    return False
+
+
+def should_process_pr_logic(data, title) -> bool:
+    try:
+        # logic to ignore MRs for titles, labels and source, target branches.
+        ignore_mr_title = get_settings().get("CONFIG.IGNORE_PR_TITLE", [])
+        ignore_mr_labels = get_settings().get("CONFIG.IGNORE_PR_LABELS", [])
+        ignore_mr_source_branches = get_settings().get("CONFIG.IGNORE_PR_SOURCE_BRANCHES", [])
+        ignore_mr_target_branches = get_settings().get("CONFIG.IGNORE_PR_TARGET_BRANCHES", [])
+
+        #
+        if ignore_mr_source_branches:
+            source_branch = data['object_attributes'].get('source_branch')
+            if any(re.search(regex, source_branch) for regex in ignore_mr_source_branches):
+                get_logger().info(
+                    f"Ignoring MR with source branch '{source_branch}' due to gitlab.ignore_mr_source_branches settings")
+                return False
+
+        if ignore_mr_target_branches:
+            target_branch = data['object_attributes'].get('target_branch')
+            if any(re.search(regex, target_branch) for regex in ignore_mr_target_branches):
+                get_logger().info(
+                    f"Ignoring MR with target branch '{target_branch}' due to gitlab.ignore_mr_target_branches settings")
+                return False
+
+        if ignore_mr_labels:
+            labels = [label['title'] for label in data['object_attributes'].get('labels', [])]
+            if any(label in ignore_mr_labels for label in labels):
+                labels_str = ", ".join(labels)
+                get_logger().info(f"Ignoring MR with labels '{labels_str}' due to gitlab.ignore_mr_labels settings")
+                return False
+
+        if ignore_mr_title:
+            if any(re.search(regex, title) for regex in ignore_mr_title):
+                get_logger().info(f"Ignoring MR with title '{title}' due to gitlab.ignore_mr_title settings")
+                return False
+    except Exception as e:
+        get_logger().error(f"Failed 'should_process_pr_logic': {e}")
+    return True
+
 
 @router.post("/webhook")
 async def gitlab_webhook(background_tasks: BackgroundTasks, request: Request):
@@ -87,6 +140,10 @@ async def gitlab_webhook(background_tasks: BackgroundTasks, request: Request):
         if request.headers.get("X-Gitlab-Token") and secret_provider:
             request_token = request.headers.get("X-Gitlab-Token")
             secret = secret_provider.get_secret(request_token)
+            if not secret:
+                get_logger().warning(f"Empty secret retrieved, request_token: {request_token}")
+                return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    content=jsonable_encoder({"message": "unauthorized"}))
             try:
                 secret_dict = json.loads(secret)
                 gitlab_token = secret_dict["gitlab_token"]
@@ -113,21 +170,30 @@ async def gitlab_webhook(background_tasks: BackgroundTasks, request: Request):
         sender = data.get("user", {}).get("username", "unknown")
         sender_id = data.get("user", {}).get("id", "unknown")
 
-        # logic to ignore bot users (unlike Github, no direct flag for bot users in gitlab)
-        sender_name = data.get("user", {}).get("name", "unknown").lower()
-        if 'khulnasoft' in sender_name or 'bot_' in sender_name or 'bot-' in sender_name or '_bot' in sender_name or '-bot' in sender_name:
-            get_logger().info(f"Skipping bot user: {sender_name}")
+        # ignore bot users
+        if is_bot_user(data):
             return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder({"message": "success"}))
+        if data.get('event_type') != 'note' and data.get('object_attributes', {}): # not a comment
+            # ignore MRs based on title, labels, source and target branches
+            if not should_process_pr_logic(data, data['object_attributes'].get('title')):
+                return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder({"message": "success"}))
 
         log_context["sender"] = sender
         if data.get('object_kind') == 'merge_request' and data['object_attributes'].get('action') in ['open', 'reopen']:
+            title = data['object_attributes'].get('title')
             url = data['object_attributes'].get('url')
+            draft = data['object_attributes'].get('draft')
             get_logger().info(f"New merge request: {url}")
+            if draft:
+                get_logger().info(f"Skipping draft MR: {url}")
+                return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder({"message": "success"}))
+
             await _perform_commands_gitlab("pr_commands", PRInsight(), url, log_context)
         elif data.get('object_kind') == 'note' and data.get('event_type') == 'note': # comment on MR
             if 'merge_request' in data:
                 mr = data['merge_request']
                 url = mr.get('url')
+
                 get_logger().info(f"A comment has been added to a merge request: {url}")
                 body = data.get('object_attributes', {}).get('note')
                 if data.get('object_attributes', {}).get('type') == 'DiffNote' and '/ask' in body: # /ask_line
@@ -193,7 +259,7 @@ if not gitlab_url:
     raise ValueError("GITLAB.URL is not set")
 get_settings().config.git_provider = "gitlab"
 middleware = [Middleware(RawContextMiddleware)]
-app = ReadyAPI(middleware=middleware)
+app = FastAPI(middleware=middleware)
 app.include_router(router)
 
 

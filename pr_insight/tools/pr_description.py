@@ -92,7 +92,7 @@ class PRDescription:
             if self.prediction:
                 self._prepare_data()
             else:
-                get_logger().error(f"Error getting AI prediction {self.pr_id}")
+                get_logger().warning(f"Empty prediction, PR: {self.pr_id}")
                 self.git_provider.remove_initial_comment()
                 return None
 
@@ -117,9 +117,8 @@ class PRDescription:
                 pr_body += "<hr>\n\n<details> <summary><strong>✨ Describe tool usage guide:</strong></summary><hr> \n\n"
                 pr_body += HelpMessage.get_describe_usage_guide()
                 pr_body += "\n</details>\n"
-            elif self.git_provider.is_supported("gfm_markdown") and get_settings().pr_description.enable_help_comment:
-                pr_body += "\n\n___\n\n> 💡 **PR-Insight usage**:"
-                pr_body += "\n>Comment `/help` on the PR to get a list of all available PR-Insight tools and their descriptions\n\n"
+            elif get_settings().pr_description.enable_help_comment:
+                pr_body += '\n\n___\n\n> 💡 **PR-Insight usage**: Comment `/help "your question"` on any pull request to receive relevant information'
 
             # Output the relevant configurations if enabled
             if get_settings().get('config', {}).get('output_relevant_configurations', False):
@@ -348,8 +347,8 @@ extra_file_yaml =
         set_custom_labels(variables, self.git_provider)
         self.variables = variables
 
-        system_prompt = environment.from_string(get_settings().get(prompt, {}).get("system", "")).render(variables)
-        user_prompt = environment.from_string(get_settings().get(prompt, {}).get("user", "")).render(variables)
+        system_prompt = environment.from_string(get_settings().get(prompt, {}).get("system", "")).render(self.variables)
+        user_prompt = environment.from_string(get_settings().get(prompt, {}).get("user", "")).render(self.variables)
 
         response, finish_reason = await self.ai_handler.chat_completion(
             model=model,
@@ -508,8 +507,17 @@ extra_file_yaml =
 
     def _prepare_file_labels(self):
         file_label_dict = {}
+        if (not self.data or not isinstance(self.data, dict) or
+                'pr_files' not in self.data or not self.data['pr_files']):
+            return file_label_dict
         for file in self.data['pr_files']:
             try:
+                required_fields = ['changes_summary', 'changes_title', 'filename', 'label']
+                if not all(field in file for field in required_fields):
+                    # can happen for example if a YAML generation was interrupted in the middle (no more tokens)
+                    get_logger().warning(f"Missing required fields in file label dict {self.pr_id}, skipping file",
+                                         artifact={"file": file})
+                    continue
                 filename = file['filename'].replace("'", "`").replace('"', '`')
                 changes_summary = file['changes_summary']
                 changes_title = file['changes_title'].strip()
@@ -629,9 +637,10 @@ def insert_br_after_x_chars(text, x=70):
     text = replace_code_tags(text)
 
     # convert list items to <li>
-    if text.startswith("- "):
+    if text.startswith("- ") or text.startswith("* "):
         text = "<li>" + text[2:]
     text = text.replace("\n- ", '<br><li> ').replace("\n - ", '<br><li> ')
+    text = text.replace("\n* ", '<br><li> ').replace("\n * ", '<br><li> ')
 
     # convert new lines to <br>
     text = text.replace("\n", '<br>')
