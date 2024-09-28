@@ -14,7 +14,6 @@ KhulnaSoft PR-Insight aims to help efficiently review and handle pull requests, 
 </div>
 
 [![GitHub license](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Khulnasoft/pr-insight/blob/main/LICENSE)
-[![Static Badge](https://img.shields.io/badge/Chrome-Extension-violet)](https://chromewebstore.google.com/detail/pr-insight-chrome-extension/ephlnjeghhogofkifjloamocljapahnl)
 [![Static Badge](https://img.shields.io/badge/Code-Benchmark-blue)](https://pr-insight-docs.khulnasoft.com/finetuning_benchmark/)
 [![Discord](https://badgen.net/badge/icon/discord?icon=discord&label&color=purple)](https://discord.com/channels/1057273017547378788/1126104260430528613)
 [![Twitter](https://img.shields.io/twitter/follow/khulnasoft)](https://twitter.com/khulnasoft)
@@ -222,7 +221,7 @@ ___
 
 [//]: # (<p float="center">)
 
-[//]: # (<img src="https://www.khulnasoft.com/images/improve-2.gif" width="800">)
+[//]: # (- [Run as a GitHub Insight]&#40;https://khulnasoft.github.io/pr-insight/installation/github/#run-as-a-github-insight&#41;)
 
 [//]: # (</p>)
 
@@ -283,7 +282,7 @@ Here are some advantages of PR-Insight:
 - We emphasize **real-life practical usage**. Each tool (review, improve, ask, ...) has a single GPT-4 call, no more. We feel that this is critical for realistic team usage - obtaining an answer quickly (~30 seconds) and affordably.
 - Our [PR Compression strategy](https://pr-insight-docs.khulnasoft.com/core-abilities/#pr-compression-strategy)  is a core ability that enables to effectively tackle both short and long PRs.
 - Our JSON prompting strategy enables to have **modular, customizable tools**. For example, the '/review' tool categories can be controlled via the [configuration](pr_insight/settings/configuration.toml) file. Adding additional categories is easy and accessible.
-- We support **multiple git providers** (GitHub, Gitlab, Bitbucket), **multiple ways** to use the tool (CLI, GitHub Action, GitHub App, Docker, ...), and **multiple models** (GPT-4, GPT-3.5, Anthropic, Cohere, Llama2).
+- We support **multiple git providers** (GitHub, Gitlab, Bitbucket), **multiple ways** to use the tool (CLI, GitHub Insight, GitHub App, Docker, ...), and **multiple models** (GPT-4, GPT-3.5, Anthropic, Cohere, Llama2).
 
 
 ## Data privacy
@@ -309,7 +308,7 @@ https://openai.com/enterprise-privacy
 
 [![Join our Discord community](https://raw.githubusercontent.com/Khulnasoft/khulnasoft-vscode-release/main/media/docs/Joincommunity.png)](https://discord.gg/kG35uSHDBc)
 
-- Discord community: https://discord.gg/kG35uSHDBc
+- Discord community: https://discord.gg/NfDj6xsR
 - KhulnaSoft site: https://khulnasoft.com
 - Blog: https://www.khulnasoft.com/blog/
 - Troubleshooting: https://www.khulnasoft.com/blog/technical-faq-and-troubleshooting/
